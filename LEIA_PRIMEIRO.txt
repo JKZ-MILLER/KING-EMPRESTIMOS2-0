@@ -1,0 +1,9 @@
+CE — LOGO + FOTO EM TODOS OS CONTRATOS
+
+- Logo original do CE incluída no pacote e mantida no aplicativo.
+- Painel Admin agora também exibe a logo do CE.
+- A foto do cliente é vinculada automaticamente aos contratos pelo clienteId.
+- Quando existir foto, ela é reutilizada nas listas, resumo, planilha e componentes de contrato.
+- O contrato também recebe uma referência foto em memória para telas que renderizam o contrato diretamente.
+- Mantidos login, sessão, encerrar sessão, efeitos de clique e Painel Admin privado.
+- Sem música e sem botão de música.
