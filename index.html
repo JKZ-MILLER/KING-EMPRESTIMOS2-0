@@ -1245,123 +1245,93 @@ window.addEventListener("ce-quick-payment",open);
 <script id="ce-cloud-sync-script">
 (()=>{
  const TABLE="ce_user_data";
- const DATA_KEYS=["clients","contracts","pix","theme"];
+ const KEYS=["clients","contracts","pix","theme"];
  const $=id=>document.getElementById(id);
- let userId=null,ready=false,loading=false,timer=null,wrapped=false;
+ let userId=null,ready=false,loading=false,lastHash="",saving=false,poll=null;
 
- function indicator(text,state="ok"){
-   const el=$("ce-cloud-indicator"); if(!el)return;
+ const indicator=(text,state="ok")=>{
+   const el=$("ce-cloud-indicator");if(!el)return;
    el.className="show"+(state==="syncing"?" syncing":state==="error"?" error":"");
-   const span=el.querySelector("span"); if(span)span.textContent=text;
-   if(state==="ok")setTimeout(()=>{if(span&&span.textContent===text)el.className=""},2200);
- }
- function snapshot(){
+   const s=el.querySelector("span");if(s)s.textContent=text;
+   if(state==="ok")setTimeout(()=>{if(s&&s.textContent===text)el.className=""},2200);
+ };
+ const normalize=()=>{
    const m=window.__CE_MEM__||{};
-   const data={};
-   for(const k of DATA_KEYS){
-     const v=m[k];
-     if(v!==undefined)data[k]=v;
-   }
-   return {version:2,data,savedAt:new Date().toISOString()};
- }
- async function saveNow(){
+   if(!Array.isArray(m.clients))m.clients=[];
+   if(!Array.isArray(m.contracts))m.contracts=[];
+   // Garante que uma foto já existente nunca seja removida do contrato.
+   const map=new Map(m.clients.map(c=>[c.id,c.foto||""]));
+   m.contracts.forEach(ct=>{
+     const p=map.get(ct.clienteId);
+     if(p)ct.foto=p;
+   });
+   return m;
+ };
+ const snapshot=()=>{
+   const m=normalize(),d={};
+   KEYS.forEach(k=>{if(m[k]!==undefined)d[k]=m[k]});
+   return {version:3,data:d,savedAt:new Date().toISOString()};
+ };
+ const hash=()=>{
+   try{return JSON.stringify(snapshot().data)}catch(_){return String(Date.now())}
+ };
+ async function save(force=false){
    const c=window.__CE_SUPABASE__;
-   if(!ready||loading||!c||!userId)return;
-   indicator("Salvando na nuvem","syncing");
-   const payload={user_id:userId,data:snapshot(),updated_at:new Date().toISOString()};
-   const {error}=await c.from(TABLE).upsert(payload,{onConflict:"user_id"});
-   if(error){
-     console.error("[CE Cloud] erro ao salvar",error);
-     indicator("Erro ao salvar na nuvem","error");
-     return false;
-   }
-   indicator("Salvo na nuvem","ok");
-   return true;
+   if(!ready||loading||saving||!c||!userId)return false;
+   const h=hash();
+   if(!force&&h===lastHash)return true;
+   saving=true;indicator("Salvando na nuvem","syncing");
+   const {error}=await c.from(TABLE).upsert({
+     user_id:userId,data:snapshot(),updated_at:new Date().toISOString()
+   },{onConflict:"user_id"});
+   saving=false;
+   if(error){console.error("[CE Cloud]",error);indicator("Erro ao salvar na nuvem","error");return false}
+   lastHash=hash();indicator("Salvo na nuvem","ok");return true;
  }
- function schedule(){
-   if(!ready||loading)return;
-   clearTimeout(timer);
-   indicator("Alterações pendentes","syncing");
-   timer=setTimeout(saveNow,500);
- }
- async function applyCloud(row){
-   if(!row||!row.data)return false;
-   const payload=row.data.data||row.data; // compatibilidade com versão anterior
-   if(!payload||typeof payload!=="object")return false;
+ async function persistCloudToLocal(payload){
+   const d=(payload&&payload.data)||payload||{};
    const m=window.__CE_MEM__||(window.__CE_MEM__=Object.create(null));
-   for(const k of DATA_KEYS){
-     if(payload[k]!==undefined)m[k]=payload[k];
-   }
-   // Regrava localmente usando o mecanismo nativo do CE.
+   KEYS.forEach(k=>{if(d[k]!==undefined)m[k]=d[k]});
+   normalize();
    if(typeof window.__CE_CRYPTO_SAVE__==="function"){
-     for(const k of DATA_KEYS){
-       if(m[k]!==undefined) await window.__CE_CRYPTO_SAVE__(k,m[k]);
-     }
+     for(const k of KEYS)if(m[k]!==undefined)await window.__CE_CRYPTO_SAVE__(k,m[k]);
+   }else{
+     // fallback para não perder a foto caso o mecanismo nativo ainda não esteja disponível
+     for(const k of KEYS)localStorage.setItem("vieira_ctrl_"+k,JSON.stringify(m[k]??null));
    }
-   window.dispatchEvent(new CustomEvent("ce-data-sync"));
-   return true;
- }
- function hookSaver(){
-   if(wrapped||typeof window.__CE_CRYPTO_SAVE__!=="function")return;
-   const original=window.__CE_CRYPTO_SAVE__;
-   const wrappedSave=async(k,v)=>{
-     const result=await original(k,v);
-     schedule();
-     return result;
-   };
-   wrappedSave.__ceCloudWrapped=true;
-   window.__CE_CRYPTO_SAVE__=wrappedSave;
-   wrapped=true;
  }
  async function boot(){
-   const c=window.__CE_SUPABASE__;
-   const u=window.__CE_CURRENT_USER__;
-   if(!c||!u||!u.id)return;
-   if(userId===u.id&&ready)return;
-   userId=u.id; loading=true; indicator("Carregando dados da nuvem","syncing");
+   const c=window.__CE_SUPABASE__,u=window.__CE_CURRENT_USER__;
+   if(!c||!u||!u.id||loading)return;
+   userId=u.id;loading=true;ready=false;
+   indicator("Carregando dados da nuvem","syncing");
    const {data,error}=await c.from(TABLE).select("data,updated_at").eq("user_id",userId).maybeSingle();
-   if(error){
-     console.error("[CE Cloud] erro ao carregar",error);
-     loading=false; indicator("Erro ao conectar à nuvem","error"); return;
+   if(error){loading=false;indicator("Erro ao conectar à nuvem","error");console.error("[CE Cloud]",error);return}
+   const guard="ce_cloud_v3_loaded_"+userId;
+   if(data&&data.data&&!sessionStorage.getItem(guard)){
+     await persistCloudToLocal(data.data);
+     sessionStorage.setItem(guard,"1");
+     loading=false;
+     // Recarrega somente uma vez: o React lê os dados recém-restaurados e renderiza as fotos corretamente.
+     location.reload();
+     return;
    }
-   // Aguarda a camada local/PIN terminar de preparar a memória antes de aplicar dados.
-   const hasPin=!!localStorage.getItem("vieira_ctrl_crypto_meta");
-   if(data && data.data){
-     if(hasPin && !window.__CE_UNLOCKED__){
-       window.__CE_CLOUD_PENDING__=data;
-       indicator("Aguardando desbloqueio","syncing");
-       loading=false; return;
-     }
-     await applyCloud(data);
-     indicator("Dados da nuvem carregados","ok");
-   }else{
-     indicator("Nuvem conectada","ok");
-   }
-   loading=false; ready=true; hookSaver();
-   if(!data) saveNow();
- }
- async function applyPending(){
-   const pending=window.__CE_CLOUD_PENDING__;
-   if(!pending)return;
-   loading=true;
-   await applyCloud(pending);
-   delete window.__CE_CLOUD_PENDING__;
-   loading=false; ready=true; hookSaver();
-   indicator("Dados da nuvem carregados","ok");
- }
- function watchUnlock(){
-   if(window.__CE_UNLOCKED__&&window.__CE_CLOUD_PENDING__)applyPending();
-   setTimeout(watchUnlock,400);
+   loading=false;ready=true;lastHash=hash();
+   if(!data)await save(true);
+   else indicator("Nuvem conectada","ok");
+   if(poll)clearInterval(poll);
+   // Captura também alterações feitas por componentes que guardaram uma referência antiga da função de save.
+   poll=setInterval(()=>{if(ready&&!loading&&!saving&&hash()!==lastHash)save()},900);
  }
  window.addEventListener("ce-session-ready",()=>setTimeout(boot,350));
  window.addEventListener("ce-session-ended",()=>{
-   ready=false; loading=false; userId=null; clearTimeout(timer);
-   const el=$("ce-cloud-indicator"); if(el)el.className="";
+   ready=false;loading=false;userId=null;lastHash="";
+   if(poll)clearInterval(poll);poll=null;
+   const el=$("ce-cloud-indicator");if(el)el.className="";
  });
- window.addEventListener("ce-data-sync",schedule);
- window.addEventListener("beforeunload",()=>{if(ready)saveNow()});
- window.__CE_CLOUD_SAVE_NOW__=saveNow;
- setTimeout(()=>{hookSaver();watchUnlock();},600);
+ window.addEventListener("ce-data-sync",()=>save());
+ window.addEventListener("beforeunload",()=>{if(ready)save(true)});
+ window.__CE_CLOUD_SAVE_NOW__=()=>save(true);
 })();
 </script>
 </body>
