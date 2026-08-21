@@ -1232,6 +1232,138 @@ window.addEventListener("ce-quick-payment",open);
   document.addEventListener("DOMContentLoaded",()=>obs.observe(document.body,{childList:true,subtree:true}),{once:true});
 })();
 </script>
+
+<style id="ce-cloud-style">
+#ce-cloud-indicator{position:fixed;right:18px;bottom:72px;z-index:99990;display:none;align-items:center;gap:7px;padding:8px 11px;border-radius:999px;background:rgba(20,22,28,.86);color:#fff;font:700 10px Inter,Arial,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.16)}
+#ce-cloud-indicator.show{display:flex}
+#ce-cloud-indicator i{width:7px;height:7px;border-radius:50%;background:#7fd8a4}
+#ce-cloud-indicator.syncing i{animation:ceCloudPulse .9s infinite}
+#ce-cloud-indicator.error i{background:#ff8b98}
+@keyframes ceCloudPulse{50%{transform:scale(.45);opacity:.45}}
+</style>
+<div id="ce-cloud-indicator"><i></i><span>Salvo na nuvem</span></div>
+<script id="ce-cloud-sync-script">
+(()=>{
+ const TABLE="ce_user_data";
+ const DATA_KEYS=["clients","contracts","pix","theme"];
+ const $=id=>document.getElementById(id);
+ let userId=null,ready=false,loading=false,timer=null,wrapped=false;
+
+ function indicator(text,state="ok"){
+   const el=$("ce-cloud-indicator"); if(!el)return;
+   el.className="show"+(state==="syncing"?" syncing":state==="error"?" error":"");
+   const span=el.querySelector("span"); if(span)span.textContent=text;
+   if(state==="ok")setTimeout(()=>{if(span&&span.textContent===text)el.className=""},2200);
+ }
+ function snapshot(){
+   const m=window.__CE_MEM__||{};
+   const data={};
+   for(const k of DATA_KEYS){
+     const v=m[k];
+     if(v!==undefined)data[k]=v;
+   }
+   return {version:2,data,savedAt:new Date().toISOString()};
+ }
+ async function saveNow(){
+   const c=window.__CE_SUPABASE__;
+   if(!ready||loading||!c||!userId)return;
+   indicator("Salvando na nuvem","syncing");
+   const payload={user_id:userId,data:snapshot(),updated_at:new Date().toISOString()};
+   const {error}=await c.from(TABLE).upsert(payload,{onConflict:"user_id"});
+   if(error){
+     console.error("[CE Cloud] erro ao salvar",error);
+     indicator("Erro ao salvar na nuvem","error");
+     return false;
+   }
+   indicator("Salvo na nuvem","ok");
+   return true;
+ }
+ function schedule(){
+   if(!ready||loading)return;
+   clearTimeout(timer);
+   indicator("Alterações pendentes","syncing");
+   timer=setTimeout(saveNow,500);
+ }
+ async function applyCloud(row){
+   if(!row||!row.data)return false;
+   const payload=row.data.data||row.data; // compatibilidade com versão anterior
+   if(!payload||typeof payload!=="object")return false;
+   const m=window.__CE_MEM__||(window.__CE_MEM__=Object.create(null));
+   for(const k of DATA_KEYS){
+     if(payload[k]!==undefined)m[k]=payload[k];
+   }
+   // Regrava localmente usando o mecanismo nativo do CE.
+   if(typeof window.__CE_CRYPTO_SAVE__==="function"){
+     for(const k of DATA_KEYS){
+       if(m[k]!==undefined) await window.__CE_CRYPTO_SAVE__(k,m[k]);
+     }
+   }
+   window.dispatchEvent(new CustomEvent("ce-data-sync"));
+   return true;
+ }
+ function hookSaver(){
+   if(wrapped||typeof window.__CE_CRYPTO_SAVE__!=="function")return;
+   const original=window.__CE_CRYPTO_SAVE__;
+   const wrappedSave=async(k,v)=>{
+     const result=await original(k,v);
+     schedule();
+     return result;
+   };
+   wrappedSave.__ceCloudWrapped=true;
+   window.__CE_CRYPTO_SAVE__=wrappedSave;
+   wrapped=true;
+ }
+ async function boot(){
+   const c=window.__CE_SUPABASE__;
+   const u=window.__CE_CURRENT_USER__;
+   if(!c||!u||!u.id)return;
+   if(userId===u.id&&ready)return;
+   userId=u.id; loading=true; indicator("Carregando dados da nuvem","syncing");
+   const {data,error}=await c.from(TABLE).select("data,updated_at").eq("user_id",userId).maybeSingle();
+   if(error){
+     console.error("[CE Cloud] erro ao carregar",error);
+     loading=false; indicator("Erro ao conectar à nuvem","error"); return;
+   }
+   // Aguarda a camada local/PIN terminar de preparar a memória antes de aplicar dados.
+   const hasPin=!!localStorage.getItem("vieira_ctrl_crypto_meta");
+   if(data && data.data){
+     if(hasPin && !window.__CE_UNLOCKED__){
+       window.__CE_CLOUD_PENDING__=data;
+       indicator("Aguardando desbloqueio","syncing");
+       loading=false; return;
+     }
+     await applyCloud(data);
+     indicator("Dados da nuvem carregados","ok");
+   }else{
+     indicator("Nuvem conectada","ok");
+   }
+   loading=false; ready=true; hookSaver();
+   if(!data) saveNow();
+ }
+ async function applyPending(){
+   const pending=window.__CE_CLOUD_PENDING__;
+   if(!pending)return;
+   loading=true;
+   await applyCloud(pending);
+   delete window.__CE_CLOUD_PENDING__;
+   loading=false; ready=true; hookSaver();
+   indicator("Dados da nuvem carregados","ok");
+ }
+ function watchUnlock(){
+   if(window.__CE_UNLOCKED__&&window.__CE_CLOUD_PENDING__)applyPending();
+   setTimeout(watchUnlock,400);
+ }
+ window.addEventListener("ce-session-ready",()=>setTimeout(boot,350));
+ window.addEventListener("ce-session-ended",()=>{
+   ready=false; loading=false; userId=null; clearTimeout(timer);
+   const el=$("ce-cloud-indicator"); if(el)el.className="";
+ });
+ window.addEventListener("ce-data-sync",schedule);
+ window.addEventListener("beforeunload",()=>{if(ready)saveNow()});
+ window.__CE_CLOUD_SAVE_NOW__=saveNow;
+ setTimeout(()=>{hookSaver();watchUnlock();},600);
+})();
+</script>
 </body>
 </html>
 
