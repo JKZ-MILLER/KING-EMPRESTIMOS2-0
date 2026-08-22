@@ -1169,7 +1169,8 @@ window.addEventListener("ce-quick-payment",open);
 <div id="ce-admin-root"><header class="ce-adm-top"><h2 style="display:flex;align-items:center;gap:10px"><img src="logo-ce.png" alt="CE" style="width:34px;height:34px;border-radius:10px;object-fit:cover">CE Administração</h2><div class="ce-adm-top-actions"><button id="ce-adm-back" class="ce-adm-btn">← Voltar</button><button id="ce-adm-logout" class="ce-adm-btn danger">Encerrar sessão</button></div></header><main class="ce-adm-shell"><div class="ce-adm-eyebrow">ADMINISTRAÇÃO</div><h1>Painel administrativo</h1><p>Controle de usuários e informações do aplicativo.</p><div class="ce-adm-grid"><div class="ce-card"><span>USUÁRIOS</span><strong id="adm-users">—</strong></div><div class="ce-card"><span>ATIVOS</span><strong id="adm-active">—</strong></div><div class="ce-card"><span>CONTRATOS LOCAIS</span><strong id="adm-contracts">—</strong></div><div class="ce-card"><span>ADMIN</span><strong id="adm-name">—</strong></div></div><div class="ce-adm-main"><section class="ce-panel"><div class="ce-panel-head"><b>Usuários</b><span id="adm-status">Carregando</span></div><div style="overflow:auto"><table class="ce-table"><thead><tr><th>USUÁRIO</th><th>PERMISSÃO</th><th>STATUS</th><th>AÇÃO</th></tr></thead><tbody id="adm-list"></tbody></table></div></section><aside class="ce-panel"><div class="ce-side"><b>Conta administradora</b><p id="adm-current">—</p><button id="adm-refresh" class="ce-adm-btn primary">Atualizar dados</button></div></aside></div></main></div>
 <script id="ce-clean-admin-script">
 (()=>{
-const $=id=>document.getElementById(id), launch=$("ce-admin-launch"), root=$("ce-admin-root"), support=$("ce-support-root");
+const $=id=>document.getElementById(id), launch=$("ce-admin-launch"), root=$("ce-admin-root");
+const getSupport=()=>$("ce-support-root");
 const client=()=>window.__CE_SUPABASE__;
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const money=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(v)||0);
@@ -1201,7 +1202,13 @@ async function openSupport(id,email,name){
   $("ce-sup-user").textContent="Carregando "+(email||"conta")+"…";
   $("ce-sup-title").textContent=name||email||"Dados da conta";
   $("ce-sup-clients").textContent="…";$("ce-sup-contracts").textContent="…";$("ce-sup-active").textContent="…";$("ce-sup-total").textContent="…";
-  root.classList.remove("open"); support.classList.add("open");
+  const supportRoot=getSupport();
+  if(!supportRoot){
+    alert("Erro: a tela de suporte não foi carregada.");
+    return;
+  }
+  supportRoot.classList.add("open");
+  root.classList.remove("open");
   try{
     const {data,error}=await c.rpc("ce_admin_get_user_data_v67",{target_user_id:id});
     console.log("[CE Support V6.7] resposta",data,error);
@@ -1267,11 +1274,11 @@ document.addEventListener("click",e=>{
 async function open(){if(!await allowed()){alert("Acesso restrito ao administrador.");return}root.classList.add("open");await load()}
 if(launch)launch.onclick=open;
 $("ce-adm-back").onclick=()=>root.classList.remove("open");
-$("ce-support-back").onclick=()=>{support.classList.remove("open");root.classList.add("open")};
+$("ce-support-back").onclick=()=>{const s=getSupport();if(s)s.classList.remove("open");root.classList.add("open")};
 $("adm-refresh").onclick=load;
-$("ce-adm-logout").onclick=async()=>{if(confirm("Deseja encerrar a sessão?")&&window.__CE_LOGOUT__)await window.__CE_LOGOUT__();root.classList.remove("open");support.classList.remove("open");location.reload()};
+$("ce-adm-logout").onclick=async()=>{if(confirm("Deseja encerrar a sessão?")&&window.__CE_LOGOUT__)await window.__CE_LOGOUT__();root.classList.remove("open");getSupport()?.classList.remove("open");location.reload()};
 window.addEventListener("ce-session-ready",refreshAccess);
-window.addEventListener("ce-session-ended",()=>{launch?.classList.remove("show");root.classList.remove("open");support.classList.remove("open")});
+window.addEventListener("ce-session-ended",()=>{launch?.classList.remove("show");root.classList.remove("open");getSupport()?.classList.remove("open")});
 setTimeout(refreshAccess,700);
 })();
 </script>
