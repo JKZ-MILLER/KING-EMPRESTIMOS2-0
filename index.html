@@ -1348,6 +1348,68 @@ window.addEventListener("ce-session-ready",refreshAccess);window.addEventListene
  setInterval(migrate,1500);
 })();
 </script>
+
+<style id="ce-global-logout-style">
+#ce-global-logout{
+  position:fixed; top:18px; right:18px; z-index:2147483000;
+  display:none; align-items:center; gap:8px;
+  padding:10px 14px; border:1px solid rgba(120,120,140,.28);
+  border-radius:12px; background:var(--card,#fff); color:var(--text,#1d1d25);
+  font:700 12px Inter,Arial,sans-serif; cursor:pointer;
+  box-shadow:0 8px 28px rgba(0,0,0,.12)
+}
+#ce-global-logout.show{display:flex}
+#ce-global-logout:disabled{opacity:.65;cursor:wait}
+html.dark #ce-global-logout,[data-theme="dark"] #ce-global-logout{
+  background:#1c1e25;color:#f3f4f7;border-color:#343844
+}
+@media(max-width:640px){
+  #ce-global-logout{top:auto;bottom:18px;right:18px}
+}
+</style>
+<button id="ce-global-logout" type="button" aria-label="Encerrar sessão">
+  <span>↪</span><span>Encerrar sessão</span>
+</button>
+<script id="ce-global-logout-script">
+(()=>{
+  const getBtn=()=>document.getElementById("ce-global-logout");
+  const show=()=>{const b=getBtn();if(b)b.classList.add("show")};
+  const hide=()=>{const b=getBtn();if(b)b.classList.remove("show")};
+
+  async function endSession(){
+    const b=getBtn();
+    if(b){b.disabled=true;b.querySelector("span:last-child").textContent="Encerrando…"}
+    try{
+      if(typeof window.__CE_LOGOUT__==="function"){
+        await window.__CE_LOGOUT__();
+      }else if(window.__CE_SUPABASE__?.auth){
+        await window.__CE_SUPABASE__.auth.signOut();
+      }
+    }catch(e){console.error("Erro ao encerrar sessão:",e)}
+    finally{
+      window.__CE_CURRENT_USER__=null;
+      window.dispatchEvent(new CustomEvent("ce-session-ended"));
+      hide();
+      setTimeout(()=>window.location.reload(),150);
+    }
+  }
+
+  document.addEventListener("click",(e)=>{
+    if(e.target.closest("#ce-global-logout")) endSession();
+  });
+
+  window.addEventListener("ce-session-ready",show);
+  window.addEventListener("ce-session-ended",hide);
+
+  // Sessão restaurada após atualização da página
+  let tries=0;
+  const timer=setInterval(()=>{
+    tries++;
+    if(window.__CE_CURRENT_USER__){show();clearInterval(timer)}
+    if(tries>80)clearInterval(timer);
+  },250);
+})();
+</script>
 </body>
 </html>
 
