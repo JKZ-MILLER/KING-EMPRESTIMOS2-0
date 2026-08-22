@@ -1435,6 +1435,54 @@ html.dark #ce-global-logout,[data-theme="dark"] #ce-global-logout{
   <section class="ce-sup-panel"><div class="ce-sup-head"><b>Contratos</b></div><div style="overflow:auto"><table class="ce-sup-table"><thead><tr><th>CLIENTE</th><th>VALOR</th><th>STATUS</th><th>VENCIMENTO</th></tr></thead><tbody id="ce-sup-contracts-list"></tbody></table></div></section>
  </main>
 </div>
+
+<script id="ce-admin-session-bridge">
+(()=>{
+  const launch=()=>document.getElementById("ce-admin-launch");
+  async function syncAdminButton(){
+    const b=launch(), c=window.__CE_SUPABASE__;
+    if(!b || !c?.auth){ return false; }
+    try{
+      const {data:{user},error}=await c.auth.getUser();
+      if(error || !user){ b.classList.remove("show"); return false; }
+      window.__CE_CURRENT_USER__=user;
+      const {data,error:rpcError}=await c.rpc("ce_is_admin");
+      const ok=!rpcError && data===true;
+      b.classList.toggle("show",ok);
+      if(ok) window.dispatchEvent(new CustomEvent("ce-admin-confirmed"));
+      return ok;
+    }catch(e){
+      console.error("[CE Admin] Falha ao verificar permissão:",e);
+      b.classList.remove("show");
+      return false;
+    }
+  }
+
+  // Tenta repetidamente porque a sessão do Supabase pode restaurar depois do carregamento do HTML.
+  let attempts=0;
+  const timer=setInterval(async()=>{
+    attempts++;
+    const ok=await syncAdminButton();
+    if(ok || attempts>=60) clearInterval(timer);
+  },250);
+
+  document.addEventListener("DOMContentLoaded",syncAdminButton);
+  window.addEventListener("ce-session-ready",syncAdminButton);
+  window.addEventListener("focus",syncAdminButton);
+
+  const waitForClient=setInterval(()=>{
+    const c=window.__CE_SUPABASE__;
+    if(c?.auth?.onAuthStateChange){
+      c.auth.onAuthStateChange((_event,session)=>{
+        if(session?.user) window.__CE_CURRENT_USER__=session.user;
+        setTimeout(syncAdminButton,100);
+      });
+      clearInterval(waitForClient);
+    }
+  },200);
+  setTimeout(()=>clearInterval(waitForClient),15000);
+})();
+</script>
 </body>
 </html>
 
