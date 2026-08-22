@@ -1203,7 +1203,7 @@ async function openSupport(id,email,name){
   $("ce-sup-clients").textContent="…";$("ce-sup-contracts").textContent="…";$("ce-sup-active").textContent="…";$("ce-sup-total").textContent="…";
   root.classList.remove("open"); support.classList.add("open");
   try{
-    const {data,error}=await c.rpc("ce_admin_get_user_data",{target_user_id:id});
+    const {data,error}=await c.rpc("ce_admin_get_user_data_v66",{target_user_id:id});
     if(error) throw error;
     if(!data || data.target_user_id!==id) throw new Error("O servidor não confirmou a conta selecionada.");
     const payload=unwrap(data);
@@ -1234,7 +1234,7 @@ async function setStatus(id,next,button){
   const old=button?.textContent;
   if(button){button.disabled=true;button.textContent="Salvando…"}
   try{
-    const {data,error}=await client().rpc("ce_set_user_status",{target_user_id:id,new_status:next});
+    const {data,error}=await client().rpc("ce_set_user_status_v66",{target_user_id:id,new_status:next});
     if(error)throw error;
     if(!data?.ok)throw new Error(data?.message||"O status não foi alterado.");
     await load();
@@ -1555,6 +1555,33 @@ html.dark #ce-global-logout,[data-theme="dark"] #ce-global-logout{
   setTimeout(()=>clearInterval(waitForClient),15000);
 })();
 </script>
+
+<script id="ce-blocked-session-guard">
+(()=>{
+ let checking=false;
+ async function check(){
+   if(checking)return;
+   const c=window.__CE_SUPABASE__;
+   if(!c?.auth)return;
+   checking=true;
+   try{
+     const {data:{user}}=await c.auth.getUser();
+     if(!user)return;
+     const {data,error}=await c.from("profiles").select("status").eq("id",user.id).maybeSingle();
+     if(!error && data?.status==="blocked"){
+       await c.auth.signOut();
+       window.__CE_CURRENT_USER__=null;
+       window.dispatchEvent(new CustomEvent("ce-session-ended"));
+       location.reload();
+     }
+   }catch(e){console.error("[CE Block Guard]",e)}
+   finally{checking=false}
+ }
+ window.addEventListener("focus",check);
+ window.addEventListener("ce-session-ready",check);
+ setInterval(check,30000);
+})();
+</script>
 </body>
 </html>
 
@@ -1636,11 +1663,33 @@ window.__CE_SUPABASE__=client;
 function setMsg(text,type="ok"){msg.textContent=text||"";msg.className="ce-auth-msg"+(text?" show "+type:"")}
 function showView(view){["login","signup","forgot","migrate"].forEach(v=>{const el=document.getElementById("ce-auth-"+v);if(el)el.hidden=v!==view});setMsg("")}
 function setLoading(form,on){const b=form.querySelector("button[type=submit]");if(!b)return; if(on){b.dataset.original=b.textContent;b.textContent="Aguarde...";b.disabled=true}else{b.textContent=b.dataset.original||b.textContent;b.disabled=false}}
+async function ceCheckAccountAccess(){
+ try{
+   const {data:{user},error}=await client.auth.getUser();
+   if(error||!user)return {ok:false};
+   const {data:profile,error:pe}=await client.from("profiles").select("status").eq("id",user.id).maybeSingle();
+   if(pe) throw pe;
+   if(profile?.status==="blocked"){
+     await client.auth.signOut();
+     window.__CE_CURRENT_USER__=null;
+     window.dispatchEvent(new CustomEvent("ce-session-ended"));
+     return {ok:false,blocked:true};
+   }
+   window.__CE_CURRENT_USER__=user;
+   return {ok:true,user};
+ }catch(e){console.error("[CE Access]",e);return {ok:false,error:e}}
+}
 async function openApp(){
  if(window.__CE_NEEDS_LEGACY_PIN__){showView("migrate");return;}
- try{const {data:{user}}=await client.auth.getUser();window.__CE_CURRENT_USER__=user||null;}catch(_){window.__CE_CURRENT_USER__=null;}
+ const access=await ceCheckAccountAccess();
+ if(!access.ok){
+   root.classList.remove("ce-auth-hidden");
+   document.documentElement.classList.add("ce-auth-lock");
+   if(access.blocked) setMsg("Esta conta foi bloqueada. Entre em contato com o suporte.","error");
+   return;
+ }
  root.classList.add("ce-auth-hidden");document.documentElement.classList.remove("ce-auth-lock");
- window.dispatchEvent(new CustomEvent("ce-session-ready",{detail:{user:window.__CE_CURRENT_USER__}}));
+ window.dispatchEvent(new CustomEvent("ce-session-ready",{detail:{user:access.user}}));
 }
 async function signOut(){const r=await client.auth.signOut();window.__CE_CURRENT_USER__=null;window.dispatchEvent(new CustomEvent("ce-session-ended"));return r}
 document.querySelectorAll("[data-ce-auth-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.ceAuthView)));
