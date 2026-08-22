@@ -1168,7 +1168,34 @@ window.addEventListener("ce-quick-payment",open);
 <button id="ce-admin-launch" type="button">🛡️ Painel Admin</button>
 <div id="ce-admin-root"><header class="ce-adm-top"><h2 style="display:flex;align-items:center;gap:10px"><img src="logo-ce.png" alt="CE" style="width:34px;height:34px;border-radius:10px;object-fit:cover">CE Administração</h2><div class="ce-adm-top-actions"><button id="ce-adm-back" class="ce-adm-btn">← Voltar</button><button id="ce-adm-logout" class="ce-adm-btn danger">Encerrar sessão</button></div></header><main class="ce-adm-shell"><div class="ce-adm-eyebrow">ADMINISTRAÇÃO</div><h1>Painel administrativo</h1><p>Controle de usuários e informações do aplicativo.</p><div class="ce-adm-grid"><div class="ce-card"><span>USUÁRIOS</span><strong id="adm-users">—</strong></div><div class="ce-card"><span>ATIVOS</span><strong id="adm-active">—</strong></div><div class="ce-card"><span>CONTRATOS LOCAIS</span><strong id="adm-contracts">—</strong></div><div class="ce-card"><span>ADMIN</span><strong id="adm-name">—</strong></div></div><div class="ce-adm-main"><section class="ce-panel"><div class="ce-panel-head"><b>Usuários</b><span id="adm-status">Carregando</span></div><div style="overflow:auto"><table class="ce-table"><thead><tr><th>USUÁRIO</th><th>PERMISSÃO</th><th>STATUS</th><th>AÇÃO</th></tr></thead><tbody id="adm-list"></tbody></table></div></section><aside class="ce-panel"><div class="ce-side"><b>Conta administradora</b><p id="adm-current">—</p><button id="adm-refresh" class="ce-adm-btn primary">Atualizar dados</button></div></aside></div></main></div>
 <script id="ce-clean-admin-script">
-(()=>{const ADMIN="juancarlosdasilva2021@gmail.com",$=id=>document.getElementById(id),launch=$("ce-admin-launch"),root=$("ce-admin-root"),client=()=>window.__CE_SUPABASE__,esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));async function allowed(){let u=window.__CE_CURRENT_USER__;try{if(!u&&client()){const{data}=await client().auth.getUser();u=data.user||null;window.__CE_CURRENT_USER__=u}}catch(_){}if(!u)return false;if(String(u.email||"").toLowerCase()===ADMIN)return true;try{const{data,error}=await client().from("profiles").select("role").eq("id",u.id).maybeSingle();return !error&&data&&data.role==="admin"}catch(_){return false}}async function refreshAccess(){launch.classList.toggle("show",await allowed())}async function load(){const u=window.__CE_CURRENT_USER__||{};$("adm-current").textContent=u.email||ADMIN;$("adm-name").textContent=(u.email||ADMIN).split("@")[0];const mem=window.__CE_MEM__||{};$("adm-contracts").textContent=Array.isArray(mem.contracts)?mem.contracts.length:0;const c=client();if(!c)return;const{data,error}=await c.from("profiles").select("id,full_name,email,role,status").order("created_at",{ascending:false});if(error){$("adm-status").textContent="Execute o SQL do pacote";$("adm-list").innerHTML='<tr><td colspan="4" class="ce-empty">Tabela profiles ainda não configurada.</td></tr>';return}const rows=data||[];$("adm-users").textContent=rows.length;$("adm-active").textContent=rows.filter(x=>x.status!=="blocked").length;$("adm-status").textContent=rows.length+" usuário(s)";$("adm-list").innerHTML=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.full_name||"Sem nome")+'</b><br><small>'+esc(x.email||"")+'</small></td><td><span class="ce-badge '+(x.role==="admin"?"admin":"")+'">'+(x.role==="admin"?"ADMIN":"USUÁRIO")+'</span></td><td><span class="ce-badge '+(x.status==="blocked"?"blocked":"")+'">'+(x.status==="blocked"?"BLOQUEADO":"ATIVO")+'</span></td><td><button class="ce-adm-btn" data-id="'+esc(x.id)+'" data-next="'+(x.status==="blocked"?"active":"blocked")+'">'+(x.status==="blocked"?"Desbloquear":"Bloquear")+'</button></td></tr>').join(""):'<tr><td colspan="4" class="ce-empty">Nenhum perfil encontrado.</td></tr>';$("adm-list").querySelectorAll("button[data-id]").forEach(b=>b.onclick=async()=>{const{error:e}=await c.from("profiles").update({status:b.dataset.next}).eq("id",b.dataset.id);if(e)alert(e.message);else load()})}async function open(){if(!await allowed()){alert("Acesso restrito ao administrador.");return}root.classList.add("open");await load()}launch.onclick=open;$("ce-adm-back").onclick=()=>root.classList.remove("open");$("adm-refresh").onclick=load;$("ce-adm-logout").onclick=async()=>{if(confirm("Deseja encerrar a sessão?")&&window.__CE_LOGOUT__)await window.__CE_LOGOUT__();root.classList.remove("open");location.reload()};window.addEventListener("ce-session-ready",refreshAccess);window.addEventListener("ce-session-ended",()=>{launch.classList.remove("show");root.classList.remove("open")});setTimeout(refreshAccess,700);document.addEventListener("click",e=>{const b=e.target.closest("button,a,[role=button]");if(!b)return;b.classList.remove("ce-click");requestAnimationFrame(()=>b.classList.add("ce-click"));try{const A=window.AudioContext||window.webkitAudioContext,c=new A(),o=c.createOscillator(),g=c.createGain();o.frequency.value=520;g.gain.value=.012;o.connect(g);g.connect(c.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.025);o.stop(c.currentTime+.025)}catch(_){}} ,true)})();
+(()=>{
+const $=id=>document.getElementById(id),launch=$("ce-admin-launch"),root=$("ce-admin-root"),client=()=>window.__CE_SUPABASE__,esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+async function allowed(){
+ let u=window.__CE_CURRENT_USER__;
+ try{if(!u&&client()){const{data}=await client().auth.getUser();u=data.user||null;window.__CE_CURRENT_USER__=u}}catch(_){}
+ if(!u||!client())return false;
+ const{data,error}=await client().rpc("ce_is_admin");
+ return !error&&data===true;
+}
+async function refreshAccess(){launch.classList.toggle("show",await allowed())}
+async function load(){
+ const u=window.__CE_CURRENT_USER__||{};$("adm-current").textContent=u.email||"Administrador";$("adm-name").textContent=(u.email||"admin").split("@")[0];
+ const mem=window.__CE_MEM__||{};$("adm-contracts").textContent=Array.isArray(mem.contracts)?mem.contracts.length:0;
+ const c=client();if(!c)return;
+ const{data,error}=await c.from("profiles").select("id,full_name,email,role,status").order("created_at",{ascending:false});
+ if(error){$("adm-status").textContent="Sem permissão";$("adm-list").innerHTML='<tr><td colspan="4" class="ce-empty">Acesso administrativo não autorizado.</td></tr>';return}
+ const rows=data||[];$("adm-users").textContent=rows.length;$("adm-active").textContent=rows.filter(x=>x.status!=="blocked").length;$("adm-status").textContent=rows.length+" usuário(s)";
+ $("adm-list").innerHTML=rows.length?rows.map(x=>'<tr><td><b>'+esc(x.full_name||"Sem nome")+'</b><br><small>'+esc(x.email||"")+'</small></td><td><span class="ce-badge '+(x.role==="admin"?"admin":"")+'">'+(x.role==="admin"?"ADMIN":"USUÁRIO")+'</span></td><td><span class="ce-badge '+(x.status==="blocked"?"blocked":"")+'">'+(x.status==="blocked"?"BLOQUEADO":"ATIVO")+'</span></td><td><button class="ce-adm-btn" data-id="'+esc(x.id)+'" data-next="'+(x.status==="blocked"?"active":"blocked")+'">'+(x.status==="blocked"?"Desbloquear":"Bloquear")+'</button></td></tr>').join(""):'<tr><td colspan="4" class="ce-empty">Nenhum perfil encontrado.</td></tr>';
+ $("adm-list").querySelectorAll("button[data-id]").forEach(b=>b.onclick=async()=>{
+   const{error:e}=await c.rpc("ce_set_user_status",{target_user_id:b.dataset.id,new_status:b.dataset.next});
+   if(e)alert(e.message);else load();
+ });
+}
+async function open(){if(!await allowed()){alert("Acesso restrito ao administrador.");return}root.classList.add("open");await load()}
+launch.onclick=open;$("ce-adm-back").onclick=()=>root.classList.remove("open");$("adm-refresh").onclick=load;
+$("ce-adm-logout").onclick=async()=>{if(confirm("Deseja encerrar a sessão?")&&window.__CE_LOGOUT__)await window.__CE_LOGOUT__();root.classList.remove("open");location.reload()};
+window.addEventListener("ce-session-ready",refreshAccess);window.addEventListener("ce-session-ended",()=>{launch.classList.remove("show");root.classList.remove("open")});setTimeout(refreshAccess,700);
+})();
 </script>
 <style id="ce-contract-photo-everywhere-style">
 .ce-contract-photo{width:42px!important;height:42px!important;min-width:42px!important;border-radius:50%!important;object-fit:cover!important;object-position:center!important;display:block!important;flex:0 0 42px!important}
@@ -1244,94 +1271,81 @@ window.addEventListener("ce-quick-payment",open);
 <div id="ce-cloud-indicator"><i></i><span>Salvo na nuvem</span></div>
 <script id="ce-cloud-sync-script">
 (()=>{
- const TABLE="ce_user_data";
- const KEYS=["clients","contracts","pix","theme"];
+ const TABLE="ce_user_data", KEYS=["clients","contracts","pix","theme"];
+ const CACHE_OWNER="ce_cloud_cache_owner_v5", CLOUD_READY="ce_cloud_ready_v5";
  const $=id=>document.getElementById(id);
- let userId=null,ready=false,loading=false,lastHash="",saving=false,poll=null;
-
- const indicator=(text,state="ok")=>{
-   const el=$("ce-cloud-indicator");if(!el)return;
-   el.className="show"+(state==="syncing"?" syncing":state==="error"?" error":"");
-   const s=el.querySelector("span");if(s)s.textContent=text;
-   if(state==="ok")setTimeout(()=>{if(s&&s.textContent===text)el.className=""},2200);
- };
- const normalize=()=>{
-   const m=window.__CE_MEM__||{};
-   if(!Array.isArray(m.clients))m.clients=[];
-   if(!Array.isArray(m.contracts))m.contracts=[];
-   // Garante que uma foto já existente nunca seja removida do contrato.
-   const map=new Map(m.clients.map(c=>[c.id,c.foto||""]));
-   m.contracts.forEach(ct=>{
-     const p=map.get(ct.clienteId);
-     if(p)ct.foto=p;
-   });
-   return m;
- };
- const snapshot=()=>{
-   const m=normalize(),d={};
-   KEYS.forEach(k=>{if(m[k]!==undefined)d[k]=m[k]});
-   return {version:3,data:d,savedAt:new Date().toISOString()};
- };
- const hash=()=>{
-   try{return JSON.stringify(snapshot().data)}catch(_){return String(Date.now())}
- };
- async function save(force=false){
-   const c=window.__CE_SUPABASE__;
-   if(!ready||loading||saving||!c||!userId)return false;
-   const h=hash();
-   if(!force&&h===lastHash)return true;
-   saving=true;indicator("Salvando na nuvem","syncing");
-   const {error}=await c.from(TABLE).upsert({
-     user_id:userId,data:snapshot(),updated_at:new Date().toISOString()
-   },{onConflict:"user_id"});
-   saving=false;
-   if(error){console.error("[CE Cloud]",error);indicator("Erro ao salvar na nuvem","error");return false}
-   lastHash=hash();indicator("Salvo na nuvem","ok");return true;
+ let userId=null, ready=false, loading=false, saving=false, lastHash="", poll=null;
+ const indicator=(text,state="ok")=>{const el=$("ce-cloud-indicator");if(!el)return;el.className="show"+(state==="syncing"?" syncing":state==="error"?" error":"");const s=el.querySelector("span");if(s)s.textContent=text;if(state==="ok")setTimeout(()=>{if(s&&s.textContent===text)el.className=""},2200)};
+ const normalize=()=>{const m=window.__CE_MEM__||{};if(!Array.isArray(m.clients))m.clients=[];if(!Array.isArray(m.contracts))m.contracts=[];const map=new Map(m.clients.map(c=>[c.id,c.foto||""]));m.contracts.forEach(ct=>{const p=map.get(ct.clienteId);if(p)ct.foto=p});return m};
+ const dbClients=clients=>(clients||[]).map(c=>{const x={...c};if(x.fotoStoragePath)x.foto=x.fotoStoragePath;return x});
+ const snapshot=()=>{const m=normalize(),data={};for(const k of KEYS)if(m[k]!==undefined)data[k]=k==="clients"?dbClients(m[k]):m[k];return{version:5,data,savedAt:new Date().toISOString()}};
+ const hash=()=>{try{return JSON.stringify(snapshot().data)}catch(e){return String(Date.now())}};
+ async function hydrateClients(clients,c){for(const x of clients||[]){if(x.foto&&String(x.foto).startsWith("client-photos/")){x.fotoStoragePath=x.foto;const path=x.foto.slice("client-photos/".length);const{data,error}=await c.storage.from("client-photos").createSignedUrl(path,60*60*24*7);if(!error&&data?.signedUrl)x.foto=data.signedUrl}}return clients}
+ async function writeLocal(data){const m=window.__CE_MEM__||(window.__CE_MEM__=Object.create(null));for(const k of KEYS)if(data[k]!==undefined)m[k]=k==="clients"?await hydrateClients(data[k],window.__CE_SUPABASE__):data[k];normalize();if(typeof window.__CE_CRYPTO_SAVE__==="function")for(const k of KEYS)if(m[k]!==undefined)await window.__CE_CRYPTO_SAVE__(k,m[k]);window.dispatchEvent(new CustomEvent("ce-data-sync"))}
+ async function save(force=false){const c=window.__CE_SUPABASE__;if(!ready||loading||saving||!c||!userId)return false;const h=hash();if(!force&&h===lastHash)return true;saving=true;indicator("Salvando na nuvem","syncing");const{error}=await c.from(TABLE).upsert({user_id:userId,data:snapshot(),updated_at:new Date().toISOString()},{onConflict:"user_id"});saving=false;if(error){console.error("[CE Cloud V5] save",error);indicator("Erro ao salvar na nuvem","error");return false}lastHash=hash();indicator("Salvo na nuvem","ok");return true}
+ async function boot(){const c=window.__CE_SUPABASE__,u=window.__CE_CURRENT_USER__;if(!c||!u?.id||loading)return; if(userId===u.id&&ready)return;userId=u.id;ready=false;loading=true;indicator("Carregando dados oficiais","syncing");const{data,error}=await c.from(TABLE).select("data,updated_at").eq("user_id",userId).maybeSingle();if(error){loading=false;indicator("Erro ao conectar à nuvem","error");console.error("[CE Cloud V5] load",error);return}
+   const payload=data?.data;
+   if(payload?.data||payload?.clients||payload?.contracts){await writeLocal(payload.data||payload);localStorage.setItem(CACHE_OWNER,userId);sessionStorage.setItem(CLOUD_READY,userId);loading=false;ready=true;lastHash=hash();indicator("Dados sincronizados","ok");startPolling();return}
+   // Primeira utilização: somente migra o cache se ele pertence a esta conta ou se não existe dono.
+   const owner=localStorage.getItem(CACHE_OWNER);const canMigrate=!owner||owner===userId;
+   loading=false;ready=true;localStorage.setItem(CACHE_OWNER,userId);sessionStorage.setItem(CLOUD_READY,userId);lastHash=hash();
+   if(canMigrate){indicator("Criando backup inicial","syncing");await save(true)}else{const m=window.__CE_MEM__||(window.__CE_MEM__=Object.create(null));for(const k of KEYS)delete m[k];if(typeof window.__CE_CRYPTO_SAVE__==="function")for(const k of KEYS)await window.__CE_CRYPTO_SAVE__(k,Array.isArray(k==="clients"||k==="contracts")?[]:null);lastHash=hash();await save(true)}
+   startPolling();indicator("Nuvem conectada","ok");
  }
- async function persistCloudToLocal(payload){
-   const d=(payload&&payload.data)||payload||{};
-   const m=window.__CE_MEM__||(window.__CE_MEM__=Object.create(null));
-   KEYS.forEach(k=>{if(d[k]!==undefined)m[k]=d[k]});
-   normalize();
-   if(typeof window.__CE_CRYPTO_SAVE__==="function"){
-     for(const k of KEYS)if(m[k]!==undefined)await window.__CE_CRYPTO_SAVE__(k,m[k]);
-   }else{
-     // fallback para não perder a foto caso o mecanismo nativo ainda não esteja disponível
-     for(const k of KEYS)localStorage.setItem("vieira_ctrl_"+k,JSON.stringify(m[k]??null));
-   }
- }
- async function boot(){
-   const c=window.__CE_SUPABASE__,u=window.__CE_CURRENT_USER__;
-   if(!c||!u||!u.id||loading)return;
-   userId=u.id;loading=true;ready=false;
-   indicator("Carregando dados da nuvem","syncing");
-   const {data,error}=await c.from(TABLE).select("data,updated_at").eq("user_id",userId).maybeSingle();
-   if(error){loading=false;indicator("Erro ao conectar à nuvem","error");console.error("[CE Cloud]",error);return}
-   const guard="ce_cloud_v3_loaded_"+userId;
-   if(data&&data.data&&!sessionStorage.getItem(guard)){
-     await persistCloudToLocal(data.data);
-     sessionStorage.setItem(guard,"1");
-     loading=false;
-     // Recarrega somente uma vez: o React lê os dados recém-restaurados e renderiza as fotos corretamente.
-     location.reload();
-     return;
-   }
-   loading=false;ready=true;lastHash=hash();
-   if(!data)await save(true);
-   else indicator("Nuvem conectada","ok");
-   if(poll)clearInterval(poll);
-   // Captura também alterações feitas por componentes que guardaram uma referência antiga da função de save.
-   poll=setInterval(()=>{if(ready&&!loading&&!saving&&hash()!==lastHash)save()},900);
- }
+ function startPolling(){if(poll)clearInterval(poll);poll=setInterval(()=>{if(ready&&!loading&&!saving&&hash()!==lastHash)save(false)},700)}
  window.addEventListener("ce-session-ready",()=>setTimeout(boot,350));
- window.addEventListener("ce-session-ended",()=>{
-   ready=false;loading=false;userId=null;lastHash="";
-   if(poll)clearInterval(poll);poll=null;
-   const el=$("ce-cloud-indicator");if(el)el.className="";
- });
- window.addEventListener("ce-data-sync",()=>save());
+ window.addEventListener("ce-session-ended",()=>{ready=false;loading=false;userId=null;lastHash="";if(poll)clearInterval(poll);poll=null;const el=$("ce-cloud-indicator");if(el)el.className=""});
+ window.addEventListener("ce-data-sync",()=>{if(ready)save(false)});
  window.addEventListener("beforeunload",()=>{if(ready)save(true)});
  window.__CE_CLOUD_SAVE_NOW__=()=>save(true);
+ // cobre recarregamentos onde o evento de sessão ocorreu antes deste script carregar
+ setTimeout(boot,900);
+})();
+</script>
+
+<style id="ce-storage-style">
+#ce-photo-cloud-toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:100001;background:#252833;color:#fff;padding:10px 14px;border-radius:12px;font:700 12px Arial,sans-serif;display:none;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+</style>
+<div id="ce-photo-cloud-toast">Enviando foto para a nuvem…</div>
+<script id="ce-storage-photo-sync">
+(()=>{
+ const BUCKET="client-photos";let busy=false;
+ const toast=(t,on)=>{const e=document.getElementById("ce-photo-cloud-toast");if(!e)return;e.textContent=t;e.style.display=on?"block":"none"};
+ const extFromData=s=>{const m=String(s).match(/^data:image\/([a-zA-Z0-9+.-]+);/);return m?(m[1]==="jpeg"?"jpg":m[1]):"jpg"};
+ async function migrate(){
+   const c=window.__CE_SUPABASE__,u=window.__CE_CURRENT_USER__,m=window.__CE_MEM__;
+   if(busy||!c||!u?.id||!Array.isArray(m?.clients))return;
+   const targets=m.clients.filter(x=>String(x.foto||"").startsWith("data:image/"));
+   if(!targets.length)return;
+   busy=true;toast("Enviando foto para a nuvem…",true);
+   let changed=false;
+   for(const client of targets){
+     try{
+       const blob=await (await fetch(client.foto)).blob();
+       const path=`${u.id}/${client.id||crypto.randomUUID()}/${Date.now()}.${extFromData(client.foto)}`;
+       const {error}=await c.storage.from(BUCKET).upload(path,blob,{contentType:blob.type||"image/jpeg",upsert:false});
+       if(error)throw error;
+       const{data:sd,error:se}=await c.storage.from(BUCKET).createSignedUrl(path,60*60*24*7);
+       if(se)throw se;
+       client.fotoStoragePath=`${BUCKET}/${path}`;
+       client.foto=sd.signedUrl;
+       changed=true;
+     }catch(e){console.error("[CE Storage]",e);toast("Erro ao enviar foto. Tente novamente.",true);setTimeout(()=>toast("",false),3500)}
+   }
+   if(changed){
+     const map=new Map(m.clients.map(x=>[x.id,x.foto||""]));
+     if(Array.isArray(m.contracts))m.contracts.forEach(ct=>{const p=map.get(ct.clienteId);if(p)ct.foto=p});
+     if(typeof window.__CE_CRYPTO_SAVE__==="function")await window.__CE_CRYPTO_SAVE__("clients",m.clients);
+     if(typeof window.__CE_CRYPTO_SAVE__==="function"&&Array.isArray(m.contracts))await window.__CE_CRYPTO_SAVE__("contracts",m.contracts);
+     window.dispatchEvent(new CustomEvent("ce-data-sync"));
+     if(window.__CE_CLOUD_SAVE_NOW__)await window.__CE_CLOUD_SAVE_NOW__();
+     toast("Foto salva na nuvem ✓",true);setTimeout(()=>toast("",false),1800);
+   }else if(!targets.length)toast("",false);
+   busy=false;
+ }
+ window.addEventListener("ce-session-ready",()=>setTimeout(migrate,1200));
+ window.addEventListener("ce-data-sync",()=>setTimeout(migrate,250));
+ setInterval(migrate,1500);
 })();
 </script>
 </body>
