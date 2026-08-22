@@ -1203,7 +1203,8 @@ async function openSupport(id,email,name){
   $("ce-sup-clients").textContent="…";$("ce-sup-contracts").textContent="…";$("ce-sup-active").textContent="…";$("ce-sup-total").textContent="…";
   root.classList.remove("open"); support.classList.add("open");
   try{
-    const {data,error}=await c.rpc("ce_admin_get_user_data_v66",{target_user_id:id});
+    const {data,error}=await c.rpc("ce_admin_get_user_data_v67",{target_user_id:id});
+    console.log("[CE Support V6.7] resposta",data,error);
     if(error) throw error;
     if(!data || data.target_user_id!==id) throw new Error("O servidor não confirmou a conta selecionada.");
     const payload=unwrap(data);
