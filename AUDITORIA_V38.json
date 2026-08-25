@@ -1,0 +1,16 @@
+{
+  "base": "V37",
+  "scope": [
+    "Clientes e dados",
+    "Agenda",
+    "Alertas",
+    "Relatórios",
+    "Backup e configurações",
+    "Suporte/Admin",
+    "Login/Onboarding",
+    "Modais e Toasts",
+    "Formulários"
+  ],
+  "strategy": "specific overrides for real module classes, preserving handlers and markup",
+  "inline_js_validation": "0 syntax errors"
+}
