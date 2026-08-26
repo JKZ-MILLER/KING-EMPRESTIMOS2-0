@@ -1,0 +1,20 @@
+{
+  "name": "KING CONTROL",
+  "short_name": "KING CONTROL",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#080b14",
+  "theme_color": "#080b14",
+  "icons": [
+    {
+      "src": "logo-ce.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo-ce.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

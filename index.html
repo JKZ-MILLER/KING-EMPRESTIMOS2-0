@@ -82,7 +82,6 @@
 
 <link rel="icon" type="image/png" href="logo-ce.png">
 <link rel="apple-touch-icon" href="logo-ce.png">
-<link rel="manifest" href="manifest.webmanifest">
 <meta name="application-name" content="CE">
 <meta name="apple-mobile-web-app-title" content="CE">
 
@@ -315,6 +314,8 @@
 @keyframes kc27spin{to{transform:rotate(360deg)}}@keyframes kc27breathe{50%{transform:scale(1.04);opacity:.75}}@keyframes kc27hero{50%{transform:translateX(-50%) translateY(-7px) scale(1.025)}}@keyframes kc27float{50%{transform:translateY(-8px)}}
 @media(max-width:980px){.kc27-hero{grid-template-columns:1fr;gap:38px;padding-top:45px}.kc27-copy{max-width:650px}.kc27-stage{min-height:560px}.kc27-modules{grid-template-columns:1fr}.kc27-modules article{border-right:0;border-bottom:1px solid rgba(255,255,255,.06)}.kc27-modules article:last-child{border-bottom:0}}@media(max-width:650px){.kc27-shell{padding:15px 16px}.kc27-header{height:57px}.kc27-live{display:none}.kc27-header-actions{gap:0}.kc27-brand small{font-size:6px}.kc27-copy h1{font-size:43px}.kc27-copy>p{font-size:12px}.kc27-actions{align-items:stretch;flex-direction:column}.kc27-primary,.kc27-ghost{justify-content:center}.kc27-stage{min-height:460px;border-radius:20px}.kc27-logohero{width:205px;height:205px;top:3px}.kc27-r1{width:250px;height:250px}.kc27-r2{width:350px;height:350px}.kc27-preview{left:3%;right:3%;bottom:12px;height:250px;grid-template-columns:78px 1fr}.kc27-preview aside{padding:11px 7px}.kc27-preview aside span{padding:6px 4px;font-size:6px}.kc27-preview-main{padding:12px 10px}.kc27-stats{grid-template-columns:repeat(2,1fr)}.kc27-table>div{grid-template-columns:1.1fr .9fr auto}.kc27-table>div small{display:none}.kc27-float{display:none}.kc27-footer{flex-direction:column;gap:8px}.kc27-loader-core{width:190px;height:190px}.kc27-orbit-c{width:540px;height:540px}.kc27-loader-title{font-size:16px}}
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#080b14">
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
@@ -3444,6 +3445,97 @@ $("kc-manage-plan").onclick=()=>{
 .kc-notification-switch{position:relative;width:48px;height:28px;border-radius:999px;border:1px solid #344154;background:#111925;cursor:pointer;flex:0 0 auto;transition:.2s}.kc-notification-switch i{position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#8a96a8;transition:.2s}.kc-notification-switch.on{background:linear-gradient(135deg,#8b5cf6,#6536d8);border-color:#9b7aff;box-shadow:0 0 20px rgba(139,92,246,.28)}.kc-notification-switch.on i{left:23px;background:#fff}
 @media(max-width:600px){#kc-payment-notification-host{right:10px;left:10px;bottom:12px;width:auto}.kc-pay-notification{padding:11px 12px}.kc-notification-setting{padding:14px}.kc-pay-notification-copy span{white-space:normal}}
 </style>
+
+<script id="kc-v50-mobile-push">
+(()=>{
+ const KEY="kc_mobile_notifications_enabled";
+ const legacy="kc_payment_notifications_enabled";
+ const on=()=>localStorage.getItem(KEY)==="true";
+ const set=v=>localStorage.setItem(KEY,v?"true":"false");
+
+ async function register(){
+   if(!("serviceWorker" in navigator)) return null;
+   try{return await navigator.serviceWorker.register("./sw.js")}catch(e){console.warn("[KC Push] Service Worker:",e);return null}
+ }
+ register();
+
+ async function enable(){
+   if(!("Notification" in window)){alert("Este navegador não oferece suporte a notificações.");return false}
+   const permission=await Notification.requestPermission();
+   if(permission!=="granted"){
+     set(false); alert("Permissão de notificações não concedida."); return false;
+   }
+   set(true);
+   await register();
+   return true;
+ }
+
+ async function disable(){
+   set(false);
+   localStorage.setItem(legacy,"false");
+   return true;
+ }
+
+ async function notifyPayment(detail={}){
+   if(!on() || !("Notification" in window) || Notification.permission!=="granted") return;
+   const name=detail.name||detail.client||detail.cliente||"Cliente";
+   const raw=Number(detail.value??detail.valor??0);
+   const amount=Number.isFinite(raw)&&raw>0
+      ?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(raw)
+      :"Pagamento registrado";
+   const title="Pagamento aprovado";
+   const body=name+" pagou "+amount;
+   const opts={body,tag:"kc-payment-"+Date.now(),renotify:false,icon:"./logo-ce.png",badge:"./logo-ce.png",data:{url:"./"}};
+
+   try{
+     const reg=await register();
+     if(reg && reg.showNotification){
+       await reg.showNotification(title,opts);
+     }else{
+       new Notification(title,opts);
+     }
+   }catch(e){console.warn("[KC Push] Falha ao mostrar notificação:",e)}
+ }
+ window.KC_MOBILE_PAYMENT_NOTIFY=notifyPayment;
+ window.KC_ENABLE_MOBILE_NOTIFICATIONS=enable;
+
+ // Observe existing payment-success event without replacing payment logic.
+ window.addEventListener("ce-toast",ev=>{
+   const d=ev.detail||{};
+   const text=((d.title||"")+" "+(d.text||"")).toLowerCase();
+   if(/pagamento registrado|pagamento recebido|saldo do contrato foi atualizado|pago com sucesso/.test(text)){
+     const root=document.querySelector(".ce-modal,.ce-dialog,.ce-contract-modal")||document;
+     const input=root.querySelector('input[name="valor"],input[data-payment-value],#payment-value');
+     const value=d.valor??d.value??input?.value??0;
+     const name=d.name??d.cliente??d.client??document.querySelector("[data-client-name]")?.dataset.clientName??"Cliente";
+     notifyPayment({name,value});
+   }
+ });
+
+ function injectSetting(){
+   const pages=[...document.querySelectorAll("[data-page='settings'],.ce-settings,.settings-page,#settings-page")];
+   pages.forEach(page=>{
+     if(page.querySelector("#kc-mobile-notification-setting")) return;
+     const row=document.createElement("div");
+     row.id="kc-mobile-notification-setting";
+     row.className="kc-notification-setting kc-mobile-setting";
+     row.innerHTML='<div><b>Notificações no celular</b><span>Receba uma notificação do sistema quando um pagamento for registrado</span></div><button type="button" class="kc-notification-switch" role="switch" aria-checked="false"><i></i></button>';
+     const sw=row.querySelector("button");
+     const sync=()=>{
+       const active=on() && Notification.permission==="granted";
+       sw.classList.toggle("on",active);sw.setAttribute("aria-checked",String(active));
+     };
+     sw.onclick=async()=>{
+       if(on()){await disable();sync()}
+       else{const ok=await enable();sync(); if(ok) alert("Notificações do KING CONTROL ativadas.")}
+     };
+     sync(); page.appendChild(row);
+   });
+ }
+ injectSetting();
+ new MutationObserver(injectSetting).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
 </body>
 
 <style id="kc-v42-final-render-fix">
