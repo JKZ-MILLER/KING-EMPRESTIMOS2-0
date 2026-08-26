@@ -1,5 +1,6 @@
 {
   "notification_title": "KING CONTROL",
-  "notification_body": "Pagamento recebido: R$ X.XXX,XX",
+  "notification_body": "Você recebeu um pagamento de R$ X.XXX,XX.",
+  "value": "Valor automático do pagamento registrado",
   "validation": "0 erros de sintaxe JavaScript"
 }
