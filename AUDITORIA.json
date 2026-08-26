@@ -1,6 +1,7 @@
 {
-  "notification_title": "KING CONTROL",
-  "notification_body": "Você recebeu um pagamento de R$ X.XXX,XX.",
-  "value": "Valor automático do pagamento registrado",
+  "bug": "Valor ausente era convertido no texto interno 'Pagamento registrado'.",
+  "fix": "A notificação agora procura o valor real do pagamento e nunca usa 'Pagamento registrado' como valor.",
+  "message_with_value": "Você recebeu um pagamento de R$ X.XXX,XX.",
+  "fallback_without_value": "Você recebeu um novo pagamento.",
   "validation": "0 erros de sintaxe JavaScript"
 }

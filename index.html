@@ -3488,7 +3488,7 @@ $("kc-manage-plan").onclick=()=>{
     const value=Number(detail.value ?? detail.valor ?? detail.amount ?? 0);
     const amount=Number.isFinite(value)&&value>0
       ?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value)
-      :"Pagamento registrado";
+      :null;
     const name=detail.name||detail.cliente||detail.client||"Cliente";
     const options={
       body:`${name} pagou ${amount}`,
@@ -3499,7 +3499,10 @@ $("kc-manage-plan").onclick=()=>{
       data:{url:"./"}
     };
     const reg=await getRegistration();
-    await reg.showNotification("KING CONTROL",Object.assign({},options,{body:`Você recebeu um pagamento de ${amount}.`}));
+    await reg.showNotification(
+      "KING CONTROL",
+      Object.assign({},options,{body:amount?`Você recebeu um pagamento de ${amount}.`:"Você recebeu um novo pagamento."})
+    );
     return true;
   }
 
@@ -3517,9 +3520,25 @@ $("kc-manage-plan").onclick=()=>{
       const text=`${d.title||""} ${d.text||""}`.toLowerCase();
       const paymentSuccess=/pagamento registrado|pagamento recebido|saldo do contrato foi atualizado|pago com sucesso/.test(text);
       if(paymentSuccess){
+        // Try the event payload first, then the current payment input/modal.
+        const amountInput=[
+          d.value,d.valor,d.amount,
+          document.querySelector('[name="paymentAmount"]')?.value,
+          document.querySelector('[name="valorPagamento"]')?.value,
+          document.querySelector('#paymentAmount')?.value,
+          document.querySelector('#valorPagamento')?.value,
+          document.querySelector('input[type="number"][data-payment]')?.value
+        ].find(v=>v!==undefined&&v!==null&&String(v).trim()!=="");
+
+        const parsed=Number(String(amountInput??"")
+          .replace(/R\$\s?/g,"")
+          .replace(/\./g,"")
+          .replace(",","."));
+
+        // Never show the internal fallback text "Pagamento registrado" as an amount.
         const detail={
           name:d.name||d.cliente||d.client||"Cliente",
-          value:d.value??d.valor??0
+          value:Number.isFinite(parsed)&&parsed>0?parsed:0
         };
         originalDispatch(new CustomEvent("kc-payment-registered",{detail}));
         return true;
