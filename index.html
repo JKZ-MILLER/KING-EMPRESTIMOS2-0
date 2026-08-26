@@ -2122,7 +2122,7 @@ react-dom/cjs/react-dom-client.production.js:
 
 
 <script id="ce-pwa-runtime">
-(()=>{if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}))}})();
+(()=>{if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(e=>console.warn("[KING CONTROL SW]",e)))}})();
 </script>
 <script id="ce-micro-runtime">
 (()=>{
@@ -3446,96 +3446,143 @@ $("kc-manage-plan").onclick=()=>{
 @media(max-width:600px){#kc-payment-notification-host{right:10px;left:10px;bottom:12px;width:auto}.kc-pay-notification{padding:11px 12px}.kc-notification-setting{padding:14px}.kc-pay-notification-copy span{white-space:normal}}
 </style>
 
-<script id="kc-v50-mobile-push">
+<script id="kc-current-mobile-notifications">
 (()=>{
- const KEY="kc_mobile_notifications_enabled";
- const legacy="kc_payment_notifications_enabled";
- const on=()=>localStorage.getItem(KEY)==="true";
- const set=v=>localStorage.setItem(KEY,v?"true":"false");
+  const KEY="kc_mobile_notifications_enabled";
+  const DISABLED="kc_mobile_notifications_disabled";
 
- async function register(){
-   if(!("serviceWorker" in navigator)) return null;
-   try{return await navigator.serviceWorker.register("./sw.js")}catch(e){console.warn("[KC Push] Service Worker:",e);return null}
- }
- register();
+  const supported=()=>("Notification" in window)&&("serviceWorker" in navigator);
+  const isEnabled=()=>localStorage.getItem(KEY)==="true" &&
+    localStorage.getItem(DISABLED)!=="true" &&
+    Notification.permission==="granted";
 
- async function enable(){
-   if(!("Notification" in window)){alert("Este navegador não oferece suporte a notificações.");return false}
-   const permission=await Notification.requestPermission();
-   if(permission!=="granted"){
-     set(false); alert("Permissão de notificações não concedida."); return false;
-   }
-   set(true);
-   await register();
-   return true;
- }
+  async function getRegistration(){
+    if(!supported()) throw new Error("Este navegador não suporta notificações do sistema.");
+    const reg=await navigator.serviceWorker.register("./sw.js",{scope:"./"});
+    await navigator.serviceWorker.ready;
+    return reg;
+  }
 
- async function disable(){
-   set(false);
-   localStorage.setItem(legacy,"false");
-   return true;
- }
+  async function enable(){
+    if(!supported()) throw new Error("Este navegador não suporta notificações do sistema.");
+    let permission=Notification.permission;
+    if(permission==="default") permission=await Notification.requestPermission();
+    if(permission!=="granted"){
+      localStorage.setItem(KEY,"false");
+      localStorage.setItem(DISABLED,"true");
+      throw new Error(permission==="denied"?"A permissão de notificações está bloqueada neste navegador.":"Permissão não concedida.");
+    }
+    localStorage.setItem(KEY,"true");
+    localStorage.setItem(DISABLED,"false");
+    await getRegistration();
+    return true;
+  }
 
- async function notifyPayment(detail={}){
-   if(!on() || !("Notification" in window) || Notification.permission!=="granted") return;
-   const name=detail.name||detail.client||detail.cliente||"Cliente";
-   const raw=Number(detail.value??detail.valor??0);
-   const amount=Number.isFinite(raw)&&raw>0
-      ?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(raw)
+  function disable(){
+    localStorage.setItem(KEY,"false");
+    localStorage.setItem(DISABLED,"true");
+  }
+
+  async function notifyPayment(detail={}){
+    if(!isEnabled()) return false;
+    const value=Number(detail.value ?? detail.valor ?? detail.amount ?? 0);
+    const amount=Number.isFinite(value)&&value>0
+      ?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value)
       :"Pagamento registrado";
-   const title="Pagamento aprovado";
-   const body=name+" pagou "+amount;
-   const opts={body,tag:"kc-payment-"+Date.now(),renotify:false,icon:"./logo-ce.png",badge:"./logo-ce.png",data:{url:"./"}};
+    const name=detail.name||detail.cliente||detail.client||"Cliente";
+    const options={
+      body:`${name} pagou ${amount}`,
+      icon:"./logo-ce.png",
+      badge:"./logo-ce.png",
+      tag:"kc-payment-"+Date.now(),
+      renotify:false,
+      data:{url:"./"}
+    };
+    const reg=await getRegistration();
+    await reg.showNotification("Pagamento aprovado",options);
+    return true;
+  }
 
-   try{
-     const reg=await register();
-     if(reg && reg.showNotification){
-       await reg.showNotification(title,opts);
-     }else{
-       new Notification(title,opts);
-     }
-   }catch(e){console.warn("[KC Push] Falha ao mostrar notificação:",e)}
- }
- window.KC_MOBILE_PAYMENT_NOTIFY=notifyPayment;
- window.KC_ENABLE_MOBILE_NOTIFICATIONS=enable;
+  // Dedicated event for the payment flow.
+  window.addEventListener("kc-payment-registered",ev=>{
+    notifyPayment(ev.detail||{}).catch(e=>console.warn("[KING CONTROL Notification]",e));
+  });
 
- // Observe existing payment-success event without replacing payment logic.
- window.addEventListener("ce-toast",ev=>{
-   const d=ev.detail||{};
-   const text=((d.title||"")+" "+(d.text||"")).toLowerCase();
-   if(/pagamento registrado|pagamento recebido|saldo do contrato foi atualizado|pago com sucesso/.test(text)){
-     const root=document.querySelector(".ce-modal,.ce-dialog,.ce-contract-modal")||document;
-     const input=root.querySelector('input[name="valor"],input[data-payment-value],#payment-value');
-     const value=d.valor??d.value??input?.value??0;
-     const name=d.name??d.cliente??d.client??document.querySelector("[data-client-name]")?.dataset.clientName??"Cliente";
-     notifyPayment({name,value});
-   }
- });
+  // Current file already emits ce-toast on payment success. Suppress ONLY that toast
+  // and route it to the real system notification.
+  const originalDispatch=window.dispatchEvent.bind(window);
+  window.dispatchEvent=function(event){
+    if(event?.type==="ce-toast"){
+      const d=event.detail||{};
+      const text=`${d.title||""} ${d.text||""}`.toLowerCase();
+      const paymentSuccess=/pagamento registrado|pagamento recebido|saldo do contrato foi atualizado|pago com sucesso/.test(text);
+      if(paymentSuccess){
+        const detail={
+          name:d.name||d.cliente||d.client||"Cliente",
+          value:d.value??d.valor??0
+        };
+        originalDispatch(new CustomEvent("kc-payment-registered",{detail}));
+        return true;
+      }
+    }
+    return originalDispatch(event);
+  };
 
- function injectSetting(){
-   const pages=[...document.querySelectorAll("[data-page='settings'],.ce-settings,.settings-page,#settings-page")];
-   pages.forEach(page=>{
-     if(page.querySelector("#kc-mobile-notification-setting")) return;
-     const row=document.createElement("div");
-     row.id="kc-mobile-notification-setting";
-     row.className="kc-notification-setting kc-mobile-setting";
-     row.innerHTML='<div><b>Notificações no celular</b><span>Receba uma notificação do sistema quando um pagamento for registrado</span></div><button type="button" class="kc-notification-switch" role="switch" aria-checked="false"><i></i></button>';
-     const sw=row.querySelector("button");
-     const sync=()=>{
-       const active=on() && Notification.permission==="granted";
-       sw.classList.toggle("on",active);sw.setAttribute("aria-checked",String(active));
-     };
-     sw.onclick=async()=>{
-       if(on()){await disable();sync()}
-       else{const ok=await enable();sync(); if(ok) alert("Notificações do KING CONTROL ativadas.")}
-     };
-     sync(); page.appendChild(row);
-   });
- }
- injectSetting();
- new MutationObserver(injectSetting).observe(document.documentElement,{childList:true,subtree:true});
+  // Public API for diagnostics/testing.
+  window.KING_CONTROL_NOTIFICATIONS={
+    enable,
+    disable,
+    test:async()=>{
+      await enable();
+      return notifyPayment({name:"Teste KING CONTROL",value:5000});
+    },
+    status:()=>({permission:("Notification" in window)?Notification.permission:"unsupported",enabled:isEnabled()})
+  };
+
+  function findSettingsRoots(){
+    const roots=[];
+    document.querySelectorAll('[data-page="settings"],[data-page="configuracoes"],#settings-page,.settings-page,.ce-settings').forEach(x=>roots.push(x));
+    [...document.querySelectorAll("h1,h2,h3,h4,strong,b,span,div")].forEach(x=>{
+      if(x.children.length===0 && /^(configurações|configuracoes|segurança|seguranca)$/i.test((x.textContent||"").trim())){
+        const p=x.closest("section,main,.ce-screen-transition,.ce-page,.page")||x.parentElement?.parentElement;
+        if(p) roots.push(p);
+      }
+    });
+    return [...new Set(roots)];
+  }
+
+  function injectControl(){
+    findSettingsRoots().forEach(root=>{
+      if(root.querySelector("#kc-mobile-notification-setting")) return;
+      const row=document.createElement("div");
+      row.id="kc-mobile-notification-setting";
+      row.className="kc-mobile-notification-setting";
+      row.innerHTML='<div class="kc-mobile-notification-copy"><b>Notificações do celular</b><span>Receba uma notificação do sistema quando um pagamento for confirmado.</span><button type="button" class="kc-mobile-notification-test">Testar notificação</button></div><button type="button" class="kc-mobile-notification-switch" aria-label="Ativar notificações"><i></i></button>';
+      const toggle=row.querySelector(".kc-mobile-notification-switch");
+      const test=row.querySelector(".kc-mobile-notification-test");
+      const sync=()=>toggle.classList.toggle("on",isEnabled());
+      toggle.addEventListener("click",async()=>{
+        try{
+          if(isEnabled()){disable();sync()}
+          else{await enable();sync()}
+        }catch(e){alert(e.message);sync()}
+      });
+      test.addEventListener("click",async()=>{
+        try{await enable();await notifyPayment({name:"Teste KING CONTROL",value:5000});sync()}
+        catch(e){alert(e.message);sync()}
+      });
+      root.appendChild(row);
+      sync();
+    });
+  }
+
+  injectControl();
+  new MutationObserver(injectControl).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
+<style id="kc-current-mobile-notifications-style">
+.kc-mobile-notification-setting{margin-top:14px;padding:16px 17px;border-radius:16px;border:1px solid rgba(139,92,246,.28);background:linear-gradient(135deg,#121925,#0b1019);display:flex;align-items:center;justify-content:space-between;gap:18px}.kc-mobile-notification-copy{min-width:0}.kc-mobile-notification-setting b{display:block;color:#edf2f7;font-size:13px;margin-bottom:5px}.kc-mobile-notification-setting span{display:block;color:#7f8da1;font-size:11px;line-height:1.45}.kc-mobile-notification-test{margin-top:10px;border:1px solid #39465b;background:#0b121c;color:#dfe7f2;border-radius:9px;padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer}.kc-mobile-notification-switch{position:relative;width:48px;height:28px;border-radius:999px;border:1px solid #344154;background:#111925;cursor:pointer;flex:0 0 auto}.kc-mobile-notification-switch i{position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#8a96a8;transition:.2s}.kc-mobile-notification-switch.on{background:linear-gradient(135deg,#8b5cf6,#6536d8);border-color:#9b7aff}.kc-mobile-notification-switch.on i{left:23px;background:#fff}
+</style>
 </body>
 
 <style id="kc-v42-final-render-fix">

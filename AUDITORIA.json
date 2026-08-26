@@ -1,0 +1,9 @@
+{
+  "base": "index(5).html (arquivo enviado pelo usuário na última versão)",
+  "notification": "Notificação do sistema usando Service Worker e Notification API",
+  "conflict_fixed": "Runtime antigo registrava service-worker.js enquanto a versão atual usa sw.js; agora há um único worker.",
+  "dashboard_toast": "Somente o toast específico de pagamento é suprimido; demais mensagens do sistema permanecem.",
+  "control": "Ativar/desativar + Testar notificação",
+  "validation": "Todos os scripts inline passaram em node --check",
+  "runtime_note": "Exige HTTPS ou localhost e permissão concedida pelo navegador"
+}
