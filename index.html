@@ -3375,6 +3375,75 @@ $("kc-manage-plan").onclick=()=>{
   new MutationObserver(bind).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>
+
+<script id="kc-v48-payment-notifications">
+(()=>{
+ const KEY="kc_payment_notifications_enabled";
+ const enabled=()=>localStorage.getItem(KEY)!=="false";
+ const setEnabled=v=>localStorage.setItem(KEY,v?"true":"false");
+
+ function host(){
+   let h=document.getElementById("kc-payment-notification-host");
+   if(!h){h=document.createElement("div");h.id="kc-payment-notification-host";document.body.appendChild(h)}
+   return h;
+ }
+ function notify(detail={}){
+   if(!enabled())return;
+   const name=detail.name||detail.client||detail.cliente||"Cliente";
+   const value=Number(detail.value??detail.valor??0);
+   const amount=isFinite(value)&&value>0?new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(value):"Pagamento registrado";
+   const n=document.createElement("div");
+   n.className="kc-pay-notification";
+   n.innerHTML='<div class="kc-pay-notification-icon"><img src="logo-ce.png" alt="KING CONTROL"></div><div class="kc-pay-notification-copy"><b>Pagamento aprovado</b><span>'+name+' pagou '+amount+'</span></div><small>agora</small>';
+   host().prepend(n);
+   requestAnimationFrame(()=>n.classList.add("show"));
+   setTimeout(()=>{n.classList.remove("show");setTimeout(()=>n.remove(),260)},6500);
+ }
+ window.KC_PAYMENT_NOTIFY=notify;
+
+ // Connect to the existing payment flow without replacing it.
+ window.addEventListener("ce-toast",ev=>{
+   const d=ev.detail||{};
+   const text=((d.title||"")+" "+(d.text||"")).toLowerCase();
+   if(/pagamento registrado|pagamento recebido|saldo do contrato foi atualizado|pago com sucesso/.test(text)){
+     const root=document.querySelector(".ce-modal,.ce-dialog,.ce-contract-modal")||document;
+     const input=root.querySelector('input[name="valor"],input[data-payment-value],#payment-value');
+     const value=d.valor??d.value??input?.value??0;
+     const name=d.name??d.cliente??d.client??document.querySelector("[data-client-name]")?.dataset.clientName??"Cliente";
+     notify({name,value});
+   }
+ });
+
+ // Settings toggle: works when a settings page is opened now or later.
+ function injectToggle(){
+   const pages=[...document.querySelectorAll("[data-page='settings'],.ce-settings,.settings-page,#settings-page")];
+   pages.forEach(page=>{
+     if(page.querySelector("#kc-payment-notification-setting"))return;
+     const row=document.createElement("div");
+     row.id="kc-payment-notification-setting";
+     row.className="kc-notification-setting";
+     row.innerHTML='<div><b>Notificações de pagamentos</b><span>Mostrar aviso quando um pagamento for registrado</span></div><button type="button" class="kc-notification-switch" role="switch" aria-checked="false"><i></i></button>';
+     const sw=row.querySelector("button");
+     const sync=()=>{const on=enabled();sw.classList.toggle("on",on);sw.setAttribute("aria-checked",String(on))};
+     sw.onclick=()=>{setEnabled(!enabled());sync(); if(enabled()) notify({name:"Sistema",value:0})};
+     sync();
+     page.appendChild(row);
+   });
+ }
+ injectToggle();
+ new MutationObserver(injectToggle).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+<style id="kc-v48-payment-notifications-style">
+#kc-payment-notification-host{position:fixed;right:18px;bottom:18px;width:min(390px,calc(100vw - 28px));z-index:2147483640;display:flex;flex-direction:column;gap:9px;pointer-events:none}
+.kc-pay-notification{pointer-events:auto;display:flex;align-items:center;gap:11px;padding:12px 13px;border:1px solid rgba(167,139,250,.25);border-radius:15px;background:linear-gradient(135deg,rgba(16,22,32,.98),rgba(10,14,22,.98));box-shadow:0 18px 55px rgba(0,0,0,.5);backdrop-filter:blur(16px);color:#fff;opacity:0;transform:translateX(28px) scale(.97);transition:.25s ease}
+.kc-pay-notification.show{opacity:1;transform:translateX(0) scale(1)}
+.kc-pay-notification-icon{width:34px;height:34px;flex:0 0 34px;border-radius:10px;display:grid;place-items:center;overflow:hidden;background:#0d1420;border:1px solid rgba(167,139,250,.35);box-shadow:0 0 18px rgba(139,92,246,.28)}.kc-pay-notification-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.kc-pay-notification-copy{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.kc-pay-notification-copy b{font-size:12px;letter-spacing:-.01em}.kc-pay-notification-copy span{font-size:10px;color:#aeb8c8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kc-pay-notification small{font-size:9px;color:#718096;align-self:flex-start;margin-top:2px}
+.kc-notification-setting{margin-top:14px;padding:16px 17px;border-radius:16px;border:1px solid rgba(139,92,246,.22);background:linear-gradient(135deg,rgba(18,25,37,.88),rgba(11,16,25,.94));display:flex;align-items:center;justify-content:space-between;gap:18px}.kc-notification-setting>div{min-width:0}.kc-notification-setting b{display:block;color:#edf2f7;font-size:13px;margin-bottom:5px}.kc-notification-setting span{display:block;color:#7f8da1;font-size:11px;line-height:1.45}
+.kc-notification-switch{position:relative;width:48px;height:28px;border-radius:999px;border:1px solid #344154;background:#111925;cursor:pointer;flex:0 0 auto;transition:.2s}.kc-notification-switch i{position:absolute;width:20px;height:20px;left:3px;top:3px;border-radius:50%;background:#8a96a8;transition:.2s}.kc-notification-switch.on{background:linear-gradient(135deg,#8b5cf6,#6536d8);border-color:#9b7aff;box-shadow:0 0 20px rgba(139,92,246,.28)}.kc-notification-switch.on i{left:23px;background:#fff}
+@media(max-width:600px){#kc-payment-notification-host{right:10px;left:10px;bottom:12px;width:auto}.kc-pay-notification{padding:11px 12px}.kc-notification-setting{padding:14px}.kc-pay-notification-copy span{white-space:normal}}
+</style>
 </body>
 
 <style id="kc-v42-final-render-fix">
