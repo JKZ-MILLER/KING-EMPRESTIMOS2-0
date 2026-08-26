@@ -3499,7 +3499,7 @@ $("kc-manage-plan").onclick=()=>{
       data:{url:"./"}
     };
     const reg=await getRegistration();
-    await reg.showNotification("Pagamento aprovado",options);
+    await reg.showNotification("KING CONTROL",Object.assign({},options,{body:`Pagamento recebido: ${amount}`}));
     return true;
   }
 
