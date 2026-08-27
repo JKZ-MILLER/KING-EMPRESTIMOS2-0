@@ -1,4 +1,4 @@
-create table if not exists public.profiles (id uuid primary key references auth.users(id) on delete cascade,full_name text,email text,role text not null default 'user' check(role in('admin','user')),status text not null default 'active' check(status in('active','blocked')),created_at timestamptz not null default now());
+create table if not exists public.profiles (id uuid primary key references auth.users(id) on delete cascade,full_name text,email text,role text not null default 'user' check(role in('admin','user')),status text not null default 'blocked' check(status in('active','blocked')),created_at timestamptz not null default now());
 insert into public.profiles(id,full_name,email) select id,coalesce(raw_user_meta_data->>'full_name',''),email from auth.users on conflict(id) do update set email=excluded.email;
 update public.profiles set role='admin' where email='juancarlosdasilva2021@gmail.com';
 alter table public.profiles enable row level security;
