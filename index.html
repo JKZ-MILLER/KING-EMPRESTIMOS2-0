@@ -303,11 +303,27 @@
 .ce-auth-back{display:none;margin:0 0 14px}.ce-auth-note{margin-top:20px;text-align:center;font-size:9px;color:#aaa1ae}.ce-auth-note span{color:#7450bc;font-weight:800}
 @media(max-width:760px){#ce-auth-root{padding:0}.ce-auth-shell{min-height:100vh;width:100%;border-radius:0;display:block}.ce-auth-brand{display:none}.ce-auth-panel{min-height:100vh;box-sizing:border-box;padding:32px 25px}.ce-auth-panel h2{font-size:25px}}
 
-/* KING CONTROL – página premium de planos */
-.ce-auth-panel{overflow:auto}
-#ce-auth-plans{padding:2px 0}
+/* KING CONTROL – página premium de planos: viewport-safe */
+#ce-auth-root{overflow:hidden}
+.ce-auth-panel{min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+.ce-auth-panel::-webkit-scrollbar{width:6px}
+.ce-auth-panel::-webkit-scrollbar-thumb{background:#d8d0e2;border-radius:99px}
+#ce-auth-plans{padding:2px 2px 22px;min-height:0}
+.ce-auth-shell.ce-plans-active{height:min(760px,calc(100vh - 40px));min-height:0}
+.ce-auth-shell.ce-plans-active .ce-auth-panel{justify-content:flex-start;padding-top:32px;padding-bottom:30px}
+.ce-auth-shell.ce-plans-active .ce-plan-grid{grid-template-columns:1fr;gap:12px}
+.ce-auth-shell.ce-plans-active .ce-plan-card{padding:18px}
+.ce-auth-shell.ce-plans-active .ce-plan-list li{font-size:10px;margin:9px 0}
+.ce-auth-shell.ce-plans-active .ce-plan-tagline{font-size:10px}
+.ce-auth-shell.ce-plans-active .ce-plan-price{font-size:27px}
+.ce-auth-shell.ce-plans-active .ce-plan-button{padding:12px;font-size:10px}
+@media(max-width:760px){
+  #ce-auth-root{overflow-y:auto;align-items:flex-start}
+  .ce-auth-shell.ce-plans-active{height:auto;min-height:calc(100vh - 24px);margin:12px 0}
+  .ce-auth-shell.ce-plans-active .ce-auth-panel{min-height:calc(100vh - 24px);overflow:visible}
+}
 .ce-plan-back{display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:#7250ba;font-size:10px;font-weight:900;cursor:pointer;padding:0;margin:0 0 16px}
-.ce-plan-hero{padding-bottom:17px;border-bottom:1px solid #eee9f3}
+.ce-plan-hero{padding-bottom:14px;border-bottom:1px solid #eee9f3}
 .ce-plan-kicker{font-size:9px;font-weight:900;letter-spacing:.16em;color:#7650bf;margin-bottom:8px}
 .ce-plan-hero h2{font-size:28px!important;line-height:1.08!important;margin:0!important}
 .ce-plan-hero p{font-size:11px;line-height:1.6;color:#82798a;margin:9px 0 0}
@@ -3031,7 +3047,17 @@ window.__CE_SUPABASE__=client;
 function setMsg(text,type="ok"){msg.textContent=text||"";msg.className="ce-auth-msg"+(text?" show "+type:"")}
 const HOTMART_MONTHLY_URL="https://pay.hotmart.com/T107348067B";
 const HOTMART_ANNUAL_URL="https://pay.hotmart.com/T107348067B?off=6k8rvii0";
-function showView(view){["login","signup","forgot","migrate","blocked","plans"].forEach(v=>{const el=document.getElementById("ce-auth-"+v);if(el)el.hidden=v!==view});setMsg("")}
+function showView(view){
+  ["login","signup","forgot","migrate","blocked","plans"].forEach(v=>{
+    const el=document.getElementById("ce-auth-"+v);
+    if(el)el.hidden=v!==view;
+  });
+  const shell=document.querySelector(".ce-auth-shell");
+  if(shell)shell.classList.toggle("ce-plans-active",view==="plans");
+  const panel=document.querySelector(".ce-auth-panel");
+  if(panel)panel.scrollTop=0;
+  setMsg("");
+}
 function setLoading(form,on){const b=form.querySelector("button[type=submit]");if(!b)return; if(on){b.dataset.original=b.textContent;b.textContent="Aguarde...";b.disabled=true}else{b.textContent=b.dataset.original||b.textContent;b.disabled=false}}
 function withTimeout(promise,ms=12000){
  return Promise.race([
