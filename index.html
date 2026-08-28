@@ -387,8 +387,7 @@
   <div class="notice-card">
     <h2 id="local-data-notice-title" class="notice-title">🔒 Aviso importante sobre seus dados</h2>
     <p class="notice-text">
-      As informações deste site são <span class="notice-highlight">salvas localmente neste aparelho</span>.
-      Isso significa que seus dados <span class="notice-highlight">não são enviados nem armazenados na nuvem</span>.
+      Seus dados são sincronizados com segurança na nuvem para a sua conta.
       <br><br>
       Para transferir seus dados para outro aparelho, faça um <span class="notice-highlight">backup e baixe o arquivo de backup</span>.
       Depois, você poderá importar esse arquivo no outro aparelho.
@@ -2179,7 +2178,7 @@ window.addEventListener("ce-quick-payment",open);
 <style id="ce-status-runtime">
 #ce-connectivity{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:10025;background:#fff;border:1px solid #E4DEEB;border-radius:999px;padding:5px 10px;font:700 10px Inter,Arial;color:#5E566A;box-shadow:0 6px 20px rgba(30,22,45,.1);opacity:0;pointer-events:none;transition:opacity .2s}
 #ce-connectivity.show{opacity:1}
-</style><script id="ce-status-runtime-script">(()=>{const x=document.createElement("div");x.id="ce-connectivity";document.body.appendChild(x);const update=()=>{x.textContent=navigator.onLine?"🟢 Online":"🟠 Offline — dados locais";x.classList.add("show");clearTimeout(x._t);x._t=setTimeout(()=>x.classList.remove("show"),2200)};window.addEventListener("online",update);window.addEventListener("offline",update);update()})();</script><style id="ce-validation-style">.ce-valid-msg{font-size:10px;margin-top:4px}.ce-valid-msg.ok{color:#19A974}.ce-valid-msg.bad{color:#D4485A}.ce-clickable{cursor:pointer!important;transition:background .15s,transform .15s}.ce-clickable:hover{background:rgba(124,77,219,.055)!important}.ce-kpi.ce-clickable:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(60,40,90,.08)}</style>
+</style><script id="ce-status-runtime-script">(()=>{const x=document.createElement("div");x.id="ce-connectivity";document.body.appendChild(x);const update=()=>{x.textContent=navigator.onLine?"🟢 Online":"🟠 Offline — aguardando conexão";x.classList.add("show");clearTimeout(x._t);x._t=setTimeout(()=>x.classList.remove("show"),2200)};window.addEventListener("online",update);window.addEventListener("offline",update);update()})();</script><style id="ce-validation-style">.ce-valid-msg{font-size:10px;margin-top:4px}.ce-valid-msg.ok{color:#19A974}.ce-valid-msg.bad{color:#D4485A}.ce-clickable{cursor:pointer!important;transition:background .15s,transform .15s}.ce-clickable:hover{background:rgba(124,77,219,.055)!important}.ce-kpi.ce-clickable:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(60,40,90,.08)}</style>
 <script id="ce-validation-runtime">(()=>{const cpfOk=v=>{let n=String(v||"").replace(/\D/g,"");if(n.length!==11||/^(\d)\1{10}$/.test(n))return false;let s=0;for(let i=0;i<9;i++)s+=+n[i]*(10-i);let d=(s*10)%11;if(d===10)d=0;if(d!==+n[9])return false;s=0;for(let i=0;i<10;i++)s+=+n[i]*(11-i);d=(s*10)%11;if(d===10)d=0;return d===+n[10]};const setNative=(el,v)=>{const proto=Object.getPrototypeOf(el),desc=Object.getOwnPropertyDescriptor(proto,"value");if(desc?.set)desc.set.call(el,v);else el.value=v;el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}))};const msg=(el,text,ok)=>{let m=el.parentElement?.querySelector(".ce-valid-msg");if(!m){m=document.createElement("div");m.className="ce-valid-msg";el.parentElement?.appendChild(m)}m.textContent=text;m.className="ce-valid-msg "+(ok?"ok":"bad")};const lookup=async el=>{const cep=el.value.replace(/\D/g,"");if(cep.length!==8)return;msg(el,"Consultando CEP…",true);try{const r=await fetch("https://viacep.com.br/ws/"+cep+"/json/");if(!r.ok)throw Error();const d=await r.json();if(d.erro){msg(el,"CEP não encontrado.",false);return}msg(el,"✓ Endereço localizado",true);const root=el.closest("form")||document,rua=root.querySelector(".ce-field-rua"),city=root.querySelector(".ce-field-city"),uf=root.querySelector(".ce-field-state");if(rua)setNative(rua,d.logradouro||"");if(city)setNative(city,d.localidade||"");if(uf)setNative(uf,d.uf||"")}catch{msg(el,"Não foi possível consultar agora. Preencha manualmente.",false)}};const bind=()=>{document.querySelectorAll(".ce-field-cpf").forEach(el=>{if(el.dataset.vbound)return;el.dataset.vbound=1;el.addEventListener("input",()=>{const n=el.value.replace(/\D/g,"");if(!n){msg(el,"",true);return}const ok=n.length===11&&cpfOk(n);msg(el,n.length<11?"Digite 11 dígitos.":ok?"✓ CPF válido":"CPF inválido",ok)})});document.querySelectorAll(".ce-field-phone").forEach(el=>{if(el.dataset.vbound)return;el.dataset.vbound=1;el.addEventListener("input",()=>{const n=el.value.replace(/\D/g,"");if(!n)return;msg(el,n.length===10||n.length===11?"✓ Quantidade de dígitos válida":"Número incompleto — use DDD + telefone",n.length===10||n.length===11)})});document.querySelectorAll(".ce-field-cep").forEach(el=>{if(el.dataset.vbound)return;el.dataset.vbound=1;const run=()=>lookup(el);el.addEventListener("input",run);el.addEventListener("change",run);el.addEventListener("blur",run);el.addEventListener("paste",()=>setTimeout(run,0))})};new MutationObserver(bind).observe(document.body,{childList:true,subtree:true});bind();window.CEValidators={cpfOk}})();</script>
 <style id="ce-calendar-runtime-style">
 .ce-calendar-page{width:100%}.ce-cal-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:14px}.ce-cal-head h2{margin:4px 0;font-size:24px}.ce-cal-head p{margin:0;color:#7d7488;font-size:13px}.ce-cal-actions{display:flex;gap:7px}.ce-cal-month-title{text-transform:capitalize;font-family:Sora,sans-serif;font-weight:800;font-size:20px;margin:12px 0}.ce-cal-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#7d7488;margin-bottom:10px}.ce-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}.ce-dot-future{background:#7c4ddb}.ce-dot-today{background:#19a974}.ce-dot-late{background:#d4485a}.ce-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}.ce-cal-weekday{text-align:center;font-size:11px;font-weight:800;color:#81788c;padding:7px 2px}.ce-cal-day{min-height:116px;border:1px solid #e7e2ec;border-radius:12px;background:#fff;text-align:left;padding:8px;cursor:pointer;overflow:hidden;transition:.15s}.ce-cal-day:hover{border-color:#7c4ddb;transform:translateY(-1px)}.ce-cal-empty{background:transparent;border-color:transparent;cursor:default}.ce-cal-number{font-weight:800;font-size:13px;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.ce-cal-today{box-shadow:inset 0 0 0 2px #19a974}.ce-cal-selected{border-color:#7c4ddb!important;background:#faf8ff}.ce-cal-count{font-size:9px;min-width:17px;height:17px;border-radius:9px;background:#7c4ddb;color:#fff;display:inline-flex;align-items:center;justify-content:center}.ce-cal-event{display:flex;justify-content:space-between;gap:4px;font-size:10px;padding:4px 5px;border-radius:7px;margin-top:4px;overflow:hidden}.ce-cal-event span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ce-cal-event b{white-space:nowrap}.ce-cal-futuro{background:#f2edff;color:#6840b8}.ce-cal-hoje{background:#e8f8f1;color:#13845c}.ce-cal-atrasado{background:#fff0f2;color:#c23d50}.ce-cal-more{font-size:10px;color:#7c4ddb;font-weight:800;padding:4px}.ce-cal-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.ce-cal-summary>div{background:#fff;border:1px solid #e7e2ec;border-radius:11px;padding:11px}.ce-cal-summary strong{font-size:17px;margin-right:4px}.ce-cal-summary span{font-size:11px;color:#7d7488}.ce-cal-detail{background:#fff;border:1px solid #e7e2ec;border-radius:14px;padding:15px;margin-top:10px}.ce-cal-detail-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.ce-cal-detail h3{margin:0;text-transform:none;font-size:16px}.ce-cal-detail p{margin:4px 0 12px;color:#7d7488;font-size:12px}.ce-cal-debtors{display:flex;flex-direction:column}.ce-cal-debtor{display:flex;align-items:center;gap:10px;border-top:1px solid #eee9f1;padding:11px 0}.ce-cal-debtor-main{display:flex;align-items:center;gap:9px;flex:1;min-width:0}.ce-cal-avatar{width:34px;height:34px;border-radius:50%;background:#eee8ff;color:#7c4ddb;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}.ce-cal-name{border:0;background:transparent;padding:0;font-weight:800;color:#24202a;cursor:pointer;text-align:left}.ce-cal-name:hover{text-decoration:underline;color:#7c4ddb}.ce-cal-meta{font-size:11px;color:#7d7488;margin-top:3px}.ce-cal-status-atrasado{color:#d4485a;font-weight:800}.ce-cal-status-hoje{color:#19a974;font-weight:800}.ce-cal-status-futuro{color:#7c4ddb;font-weight:800}.ce-cal-whats{background:#25D366;color:#fff;text-decoration:none;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:800}.ce-cal-open{border:1px solid #7c4ddb;background:transparent;color:#7c4ddb;border-radius:9px;padding:8px 10px;font-weight:700;cursor:pointer;font-size:10px}
@@ -2575,6 +2574,12 @@ async function openSupport(id,email,name){
     alert("Erro no Modo Suporte: "+(e.message||"erro desconhecido"));
   }
 }
+async function setTrial(id,email){
+  if(!id)return; if(!await allowed()){alert("Permissão administrativa não confirmada.");return}
+  const raw=prompt("Quantos dias de teste para "+(email||"esta conta")+"?", "7"); if(raw===null)return;
+  const days=Math.floor(Number(raw)); if(!Number.isFinite(days)||days<1||days>365){alert("Informe entre 1 e 365 dias.");return}
+  try{const {data,error}=await client().rpc("ce_set_user_trial",{target_user_id:id,trial_days:days});if(error)throw error;if(!data?.ok)throw new Error(data?.message||"Não foi possível liberar o teste.");alert("Conta de teste liberada por "+days+" dia(s).");await load()}catch(e){console.error("[CE Trial]",e);alert("Não foi possível liberar o teste: "+(e.message||"erro desconhecido"));}
+}
 async function setStatus(id,next,button){
   if(!id||!next)return;
   if(!await allowed()){alert("Permissão administrativa não confirmada.");return}
@@ -2595,18 +2600,22 @@ async function load(){
   const c=client(); if(!c)return;
   const u=window.__CE_CURRENT_USER__||{};
   $("adm-current").textContent=u.email||"Administrador";$("adm-name").textContent=(u.email||"admin").split("@")[0];
-  const {data,error}=await c.from("profiles").select("id,full_name,email,role,status").order("created_at",{ascending:false});
+  const {data,error}=await c.from("profiles").select("id,full_name,email,role,status,trial_ends_at").order("created_at",{ascending:false});
   if(error){console.error(error);$("adm-status").textContent="Erro";$("adm-list").innerHTML='<tr><td colspan="4" class="ce-empty">Erro: '+esc(error.message)+'</td></tr>';return}
   const rows=data||[];
   $("adm-users").textContent=rows.length;$("adm-active").textContent=rows.filter(x=>x.status==="active").length;$("adm-status").textContent=rows.length+" usuário(s)";
   $("adm-list").innerHTML=rows.length?rows.map(x=>{
     const isSelf=x.id===u.id, blocked=x.status==="blocked";
-    return '<tr><td><b>'+esc(x.full_name||"Sem nome")+'</b><br><small>'+esc(x.email||"")+'</small></td><td><span class="ce-badge '+(x.role==="admin"?"admin":"")+'">'+(x.role==="admin"?"ADMIN":"USUÁRIO")+'</span></td><td><span class="ce-badge '+(blocked?"blocked":"")+'">'+(blocked?"BLOQUEADO":"ATIVO")+'</span></td><td style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="ce-adm-btn ce-support-open" data-action="view" data-user="'+esc(x.id)+'" data-email="'+esc(x.email||"")+'" data-name="'+esc(x.full_name||"")+'">Ver dados</button>'+(isSelf?'<span style="font-size:11px;color:#89919d;padding:8px">Sua conta</span>':'<button type="button" class="ce-adm-btn" data-action="status" data-user="'+esc(x.id)+'" data-next="'+(blocked?"active":"blocked")+'">'+(blocked?"Desbloquear":"Bloquear")+'</button>')+'</td></tr>';
+    const trialEnd=x.trial_ends_at?new Date(x.trial_ends_at):null, isTrial=trialEnd&&trialEnd.getTime()>Date.now();
+    const accessLabel=isTrial?"TESTE ATÉ "+trialEnd.toLocaleDateString("pt-BR"):(blocked?"BLOQUEADO":"ATIVO");
+    return '<tr><td><b>'+esc(x.full_name||"Sem nome")+'</b><br><small>'+esc(x.email||"")+'</small></td><td><span class="ce-badge '+(x.role==="admin"?"admin":"")+'">'+(x.role==="admin"?"ADMIN":"USUÁRIO")+'</span></td><td><span class="ce-badge '+(blocked?"blocked":"")+'">'+esc(accessLabel)+'</span></td><td style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="ce-adm-btn ce-support-open" data-action="view" data-user="'+esc(x.id)+'" data-email="'+esc(x.email||"")+'" data-name="'+esc(x.full_name||"")+'">Ver dados</button>'+(isSelf?'<span style="font-size:11px;color:#89919d;padding:8px">Sua conta</span>':'<button type="button" class="ce-adm-btn" data-action="trial" data-user="'+esc(x.id)+'" data-email="'+esc(x.email||"")+'">Liberar teste</button><button type="button" class="ce-adm-btn" data-action="status" data-user="'+esc(x.id)+'" data-next="'+(blocked?"active":"blocked")+'">'+(blocked?"Desbloquear":"Bloquear")+'</button>')+'</td></tr>';
   }).join(""):'<tr><td colspan="4" class="ce-empty">Nenhum perfil encontrado.</td></tr>';
 }
 document.addEventListener("click",e=>{
   const v=e.target.closest('button[data-action="view"]');
   if(v){e.preventDefault();openSupport(v.dataset.user,v.dataset.email,v.dataset.name);return}
+  const t=e.target.closest('button[data-action="trial"]');
+  if(t){e.preventDefault();setTrial(t.dataset.user,t.dataset.email);return}
   const s=e.target.closest('button[data-action="status"]');
   if(s){e.preventDefault();setStatus(s.dataset.user,s.dataset.next,s);return}
 });
@@ -2966,12 +2975,13 @@ async function ceCheckAccountAccess(){
    if(se) throw se;
    const user=session?.user;
    if(!user)return {ok:false,error:new Error("Não foi possível localizar a sessão do usuário.")};
-   const {data:profile,error:pe}=await withTimeout(client.from("profiles").select("status,role").eq("id",user.id).maybeSingle());
+   const {data:profile,error:pe}=await withTimeout(client.from("profiles").select("status,role,trial_ends_at").eq("id",user.id).maybeSingle());
    if(pe) throw pe;
    if(!profile){
      return {ok:false,error:new Error("Sua conta foi autenticada, mas o perfil ainda não foi encontrado no sistema.")};
    }
    if(profile.status!=="active") return {ok:false,blocked:true,user};
+   if(profile.trial_ends_at && new Date(profile.trial_ends_at).getTime()<=Date.now()) return {ok:false,blocked:true,user,expired:true};
    window.__CE_CURRENT_USER__=user;
    return {ok:true,user};
  }catch(e){console.error("[CE Access]",e);return {ok:false,error:e}}
@@ -3167,11 +3177,11 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:var(
           <div class="kc-avatar" id="kc-avatar">KC</div>
           <div><div class="kc-user-name" id="kc-user-name">Carregando...</div><div class="kc-user-email" id="kc-user-email">—</div></div>
         </div>
-        <div class="kc-status"><i></i> CONTA ATIVA</div>
+        <div class="kc-status"><i></i> <span id="kc-status-text">CONTA ATIVA</span></div>
         <div class="kc-info-list" style="margin-top:18px">
           <div class="kc-info-row"><span class="kc-info-label">ID da conta</span><span class="kc-info-value" id="kc-user-id">—</span></div>
           <div class="kc-info-row"><span class="kc-info-label">Autenticação</span><span class="kc-info-value">Supabase Auth</span></div>
-          <div class="kc-info-row"><span class="kc-info-label">Acesso</span><span class="kc-info-value">Ativo</span></div>
+          <div class="kc-info-row"><span class="kc-info-label">Acesso</span><span class="kc-info-value" id="kc-access-value">Ativo</span></div><div class="kc-info-row" id="kc-trial-row" hidden><span class="kc-info-label">Tempo de teste</span><span class="kc-info-value" id="kc-trial-value">—</span></div>
         </div>
       </aside>
       <main style="display:grid;gap:18px">
@@ -3232,6 +3242,8 @@ async function load(){
  $("kc-profile-email").value=email;
  $("kc-avatar").textContent=initials(name);
  $("kc-user-id").textContent=u?.id?(u.id.slice(0,8)+"…"):"Local";
+ const c=window.__CE_SUPABASE__; const statusText=$("kc-status-text"), accessValue=$("kc-access-value"), trialRow=$("kc-trial-row"), trialValue=$("kc-trial-value");
+ if(c&&u?.id){try{const {data:profile}=await c.from("profiles").select("status,trial_ends_at").eq("id",u.id).maybeSingle(); const end=profile?.trial_ends_at?new Date(profile.trial_ends_at):null; if(end&&end.getTime()>Date.now()){const ms=end-Date.now(), d=Math.floor(ms/86400000), h=Math.floor(ms%86400000/3600000);statusText.textContent="CONTA TESTE";accessValue.textContent="Teste ativo";trialRow.hidden=false;trialValue.textContent=(d>0?d+" dia(s) e ":"")+h+"h restantes"}else{statusText.textContent="CONTA ATIVA";accessValue.textContent="Ativo";trialRow.hidden=true}}catch(e){console.warn("[KC Trial]",e)}}
 }
 async function open(){
  root.classList.add("open");root.setAttribute("aria-hidden","false");await load();
