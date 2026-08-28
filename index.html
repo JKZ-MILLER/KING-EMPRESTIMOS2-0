@@ -3123,9 +3123,20 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:var(
 .kc-edit-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.kc-field{display:grid;gap:7px}.kc-field label{font-size:10px;letter-spacing:.09em;color:var(--kc-muted);font-weight:800}.kc-field input{width:100%;box-sizing:border-box;padding:12px;border-radius:12px}
 .kc-full{grid-column:1/-1}.kc-save{border:0;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#6d4ad8);color:white;padding:12px 15px;font-weight:850;cursor:pointer;box-shadow:0 12px 30px rgba(109,74,216,.22)}.kc-msg{font-size:12px;color:#86efac;min-height:18px;margin-top:10px}
 .kc-account-footer{padding:0 24px 24px;color:var(--kc-muted);font-size:11px}
+.kc-logout{width:100%;margin-top:12px;min-height:48px;border-radius:14px;border:1px solid rgba(251,95,102,.38);background:rgba(251,95,102,.08);color:#fda4af;font-weight:850;cursor:pointer}.kc-logout:hover{background:rgba(251,95,102,.15);border-color:rgba(251,95,102,.65)}
+#kc-plans-root{position:fixed;inset:0;z-index:2147483001;display:none;background:rgba(2,4,9,.84);backdrop-filter:blur(16px);padding:24px;overflow:auto}#kc-plans-root.open{display:block}.kc-plans-shell{width:min(960px,100%);margin:18px auto 50px;background:linear-gradient(180deg,#111723,#0a0e16);border:1px solid rgba(139,92,246,.28);border-radius:26px;padding:26px;box-shadow:0 35px 100px rgba(0,0,0,.55)}.kc-plans-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}.kc-plans-eyebrow{font-size:10px;letter-spacing:.18em;color:#a78bfa;font-weight:850}.kc-plans-title{font-size:28px;font-weight:900;margin-top:6px}.kc-plans-sub{color:var(--kc-sub);font-size:13px;margin-top:8px;line-height:1.5}.kc-plans-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.kc-price-card{position:relative;padding:24px;border-radius:22px;border:1px solid #29354b;background:linear-gradient(145deg,#131a27,#0d121c)}.kc-price-card.featured{border-color:#8b5cf6;box-shadow:0 18px 50px rgba(109,74,216,.16)}.kc-price-badge{position:absolute;top:16px;right:16px;padding:6px 9px;border-radius:999px;background:rgba(139,92,246,.16);border:1px solid rgba(139,92,246,.35);color:#c4b5fd;font-size:9px;font-weight:900;letter-spacing:.08em}.kc-price-name{font-size:19px;font-weight:900}.kc-price-desc{font-size:12px;color:var(--kc-sub);margin:8px 0 20px}.kc-price-value{font-size:32px;font-weight:950}.kc-price-value small{font-size:13px;color:var(--kc-sub);font-weight:700}.kc-price-list{display:grid;gap:10px;margin:20px 0}.kc-price-item{font-size:12px;color:#dbe4f0}.kc-price-item:before{content:'✓';color:#86efac;font-weight:900;margin-right:8px}.kc-price-btn{width:100%;min-height:48px;border:0;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#6d4ad8);color:#fff;font-weight:900;cursor:pointer}.kc-price-btn.secondary{background:#182131;border:1px solid #344157;color:#e8edf6}.kc-price-note{font-size:10px;color:var(--kc-muted);text-align:center;margin-top:10px}@media(max-width:700px){#kc-plans-root{padding:10px}.kc-plans-shell{margin:0 auto;padding:18px}.kc-plans-grid{grid-template-columns:1fr}.kc-plans-head{flex-direction:column}.kc-price-badge{position:static;display:inline-flex;margin-bottom:12px} }
 @media(max-width:780px){#kc-account-root{padding:10px}.kc-account-shell{margin:0 auto;border-radius:20px}.kc-account-top{padding:20px}.kc-account-grid{grid-template-columns:1fr;padding:14px}.kc-actions,.kc-edit-form{grid-template-columns:1fr}.kc-full{grid-column:auto}.kc-plan-card{align-items:flex-start;flex-direction:column}}
 </style>
 
+<div id="kc-plans-root" aria-hidden="true">
+  <section class="kc-plans-shell" role="dialog" aria-modal="true" aria-label="Planos">
+    <div class="kc-plans-head"><div><div class="kc-plans-eyebrow">KING CONTROL</div><div class="kc-plans-title">Escolha seu plano</div><div class="kc-plans-sub">Comece pelo mensal ou economize escolhendo o plano anual. Você poderá voltar para sua conta quando quiser.</div></div><button class="kc-close" id="kc-plans-close" type="button" aria-label="Fechar">×</button></div>
+    <div class="kc-plans-grid">
+      <article class="kc-price-card"><div class="kc-price-name">Mensal</div><div class="kc-price-desc">Flexibilidade para usar mês a mês.</div><div class="kc-price-value">Plano mensal <small>/ cobrança mensal</small></div><div class="kc-price-list"><div class="kc-price-item">Acesso completo ao KING CONTROL</div><div class="kc-price-item">Clientes e contratos</div><div class="kc-price-item">Dashboard e relatórios</div><div class="kc-price-item">Acesso liberado após aprovação</div></div><button class="kc-price-btn secondary" id="kc-plan-monthly" type="button">Escolher mensal</button><div class="kc-price-note">Checkout seguro pela Hotmart</div></article>
+      <article class="kc-price-card featured"><div class="kc-price-badge">MELHOR CUSTO-BENEFÍCIO</div><div class="kc-price-name">Anual</div><div class="kc-price-desc">Para quem quer manter o sistema ativo o ano inteiro.</div><div class="kc-price-value">Plano anual <small>/ 12 meses</small></div><div class="kc-price-list"><div class="kc-price-item">Tudo do plano mensal</div><div class="kc-price-item">Um único plano para o ano</div><div class="kc-price-item">Ideal para economizar no longo prazo</div><div class="kc-price-item">Acesso contínuo após aprovação</div></div><button class="kc-price-btn" id="kc-plan-annual" type="button">Escolher anual</button><div class="kc-price-note" id="kc-annual-note">Checkout anual será configurado.</div></article>
+    </div>
+  </section>
+</div>
 <div id="kc-account-root" aria-hidden="true">
   <section class="kc-account-shell" role="dialog" aria-modal="true" aria-label="Minha conta">
     <header class="kc-account-top">
@@ -3177,6 +3188,7 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:var(
             <button class="kc-action" id="kc-go-backup" type="button"><b>Backup</b><span>Abra a área de cópias e recuperação.</span></button>
             <button class="kc-action" id="kc-go-dashboard" type="button"><b>Dashboard</b><span>Voltar para a visão geral da carteira.</span></button>
           </div>
+          <button class="kc-logout" id="kc-account-logout" type="button">↪ Encerrar sessão</button>
         </section>
       </main>
     </div>
@@ -3246,9 +3258,19 @@ $("kc-profile-save").onclick=async()=>{
 $("kc-go-dashboard").onclick=()=>nav("dashboard");
 $("kc-go-backup").onclick=()=>nav("backup");
 $("kc-account-security").onclick=()=>nav("seguranca");
-$("kc-manage-plan").onclick=()=>{
- const msg=$("kc-profile-msg");
- msg.style.color="#c4b5fd";msg.textContent="Seu acesso atual é KING CONTROL BETA. Nenhuma cobrança foi iniciada.";
+const plansRoot=$("kc-plans-root");
+const openPlans=()=>{plansRoot.classList.add("open");plansRoot.setAttribute("aria-hidden","false")};
+const closePlans=()=>{plansRoot.classList.remove("open");plansRoot.setAttribute("aria-hidden","true")};
+$("kc-manage-plan").onclick=openPlans;
+$("kc-plans-close").onclick=closePlans;
+plansRoot.addEventListener("click",e=>{if(e.target===plansRoot)closePlans()});
+$("kc-plan-monthly").onclick=()=>{window.location.href="https://pay.hotmart.com/T107348067B"};
+$("kc-plan-annual").onclick=()=>{const note=$("kc-annual-note");note.textContent="O checkout anual ainda não foi configurado. Assim que você criar o link na Hotmart, ele entra aqui.";note.style.color="#fbbf24"};
+$("kc-account-logout").onclick=async()=>{
+ if(!confirm("Deseja realmente encerrar a sessão?"))return;
+ try{if(typeof window.__CE_LOGOUT__==="function")await window.__CE_LOGOUT__();}
+ catch(err){console.error(err)}
+ close();showView("login");
 };
 })();
 </script>
