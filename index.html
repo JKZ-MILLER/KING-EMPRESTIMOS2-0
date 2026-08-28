@@ -2954,30 +2954,41 @@ function setMsg(text,type="ok"){msg.textContent=text||"";msg.className="ce-auth-
 const HOTMART_CHECKOUT_URL="https://pay.hotmart.com/T107348067B";
 function showView(view){["login","signup","forgot","migrate","blocked"].forEach(v=>{const el=document.getElementById("ce-auth-"+v);if(el)el.hidden=v!==view});setMsg("")}
 function setLoading(form,on){const b=form.querySelector("button[type=submit]");if(!b)return; if(on){b.dataset.original=b.textContent;b.textContent="Aguarde...";b.disabled=true}else{b.textContent=b.dataset.original||b.textContent;b.disabled=false}}
+function withTimeout(promise,ms=12000){
+ return Promise.race([
+   promise,
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("A conexão demorou mais do que o esperado. Verifique sua internet e tente novamente.")),ms))
+ ]);
+}
 async function ceCheckAccountAccess(){
  try{
-   const {data:{user},error}=await client.auth.getUser();
-   if(error||!user)return {ok:false};
-   const {data:profile,error:pe}=await client.from("profiles").select("status,role").eq("id",user.id).maybeSingle();
+   const {data:{session},error:se}=await withTimeout(client.auth.getSession());
+   if(se) throw se;
+   const user=session?.user;
+   if(!user)return {ok:false,error:new Error("Não foi possível localizar a sessão do usuário.")};
+   const {data:profile,error:pe}=await withTimeout(client.from("profiles").select("status,role").eq("id",user.id).maybeSingle());
    if(pe) throw pe;
-   if(profile?.status!=="active"){
-     return {ok:false,blocked:true,user};
+   if(!profile){
+     return {ok:false,error:new Error("Sua conta foi autenticada, mas o perfil ainda não foi encontrado no sistema.")};
    }
+   if(profile.status!=="active") return {ok:false,blocked:true,user};
    window.__CE_CURRENT_USER__=user;
    return {ok:true,user};
  }catch(e){console.error("[CE Access]",e);return {ok:false,error:e}}
 }
 async function openApp(){
- if(window.__CE_NEEDS_LEGACY_PIN__){showView("migrate");return;}
+ if(window.__CE_NEEDS_LEGACY_PIN__){showView("migrate");return false;}
  const access=await ceCheckAccountAccess();
  if(!access.ok){
    root.classList.remove("ce-auth-hidden");
    document.documentElement.classList.add("ce-auth-lock");
    if(access.blocked) showView("blocked");
-   return;
+   else if(access.error) setMsg(access.error.message||"Não foi possível validar seu acesso.","error");
+   return false;
  }
  root.classList.add("ce-auth-hidden");document.documentElement.classList.remove("ce-auth-lock");
  window.dispatchEvent(new CustomEvent("ce-session-ready",{detail:{user:access.user}}));
+ return true;
 }
 async function signOut(){const r=await client.auth.signOut();window.__CE_CURRENT_USER__=null;window.dispatchEvent(new CustomEvent("ce-session-ended"));return r}
 document.querySelectorAll("[data-ce-auth-view]").forEach(b=>b.addEventListener("click",()=>showView(b.dataset.ceAuthView)));
@@ -2991,8 +3002,12 @@ window.addEventListener("ce-access-blocked",()=>{root.classList.remove("ce-auth-
 document.getElementById("ce-login-form").addEventListener("submit",async ev=>{
  ev.preventDefault();const f=ev.currentTarget;setLoading(f,true);setMsg("");
  const email=document.getElementById("ce-login-email").value.trim(),password=document.getElementById("ce-login-password").value;
- const {error}=await client.auth.signInWithPassword({email,password});setLoading(f,false);
- if(error)return setMsg(error.message,"error");openApp();
+ try{
+   const {error}=await withTimeout(client.auth.signInWithPassword({email,password}));
+   if(error) return setMsg(error.message,"error");
+   await openApp();
+ }catch(e){setMsg(e?.message||"Não foi possível concluir o login.","error");}
+ finally{setLoading(f,false);}
 });
 document.getElementById("ce-signup-form").addEventListener("submit",async ev=>{
  ev.preventDefault();const f=ev.currentTarget;setLoading(f,true);setMsg("");
@@ -3268,13 +3283,49 @@ $("kc-plan-monthly").onclick=()=>{window.location.href="https://pay.hotmart.com/
 $("kc-plan-annual").onclick=()=>{const note=$("kc-annual-note");note.textContent="O checkout anual ainda não foi configurado. Assim que você criar o link na Hotmart, ele entra aqui.";note.style.color="#fbbf24"};
 $("kc-account-logout").onclick=async()=>{
  if(!confirm("Deseja realmente encerrar a sessão?"))return;
- try{if(typeof window.__CE_LOGOUT__==="function")await window.__CE_LOGOUT__();}
- catch(err){console.error(err)}
- close();showView("login");
+ const btn=$("kc-account-logout");
+ const original=btn.textContent;
+ btn.disabled=true;btn.textContent="Encerrando...";
+ try{
+   if(typeof window.__CE_LOGOUT__==="function") await window.__CE_LOGOUT__();
+   // O evento ce-session-ended restaura a tela inicial e remove a área autenticada.
+ }catch(err){
+   console.error(err);
+   alert("Não foi possível encerrar a sessão. Tente novamente.");
+   btn.disabled=false;btn.textContent=original;
+ }
 };
 })();
 </script>
 
+<script id="kc-session-exit-reset">
+(()=>{
+  window.addEventListener("ce-session-ended",()=>{
+    // Fecha qualquer painel do usuário e impede que o dashboard permaneça visível.
+    const account=document.getElementById("kc-account-root");
+    if(account){account.classList.remove("open");account.setAttribute("aria-hidden","true");}
+    const plans=document.getElementById("kc-plans-root");
+    if(plans){plans.classList.remove("open");plans.setAttribute("aria-hidden","true");}
+    const landing=document.getElementById("kc27-landing");
+    if(landing){landing.style.display="none";landing.classList.remove("kc27-show");landing.classList.add("kc27-exit");landing.setAttribute("aria-hidden","true");}
+    // Esconde o conteúdo autenticado imediatamente.
+    const app=document.getElementById("root");
+    if(app) app.replaceChildren();
+    const auth=document.getElementById("ce-auth-root");
+    if(auth){
+      auth.classList.remove("ce-auth-hidden");
+      ["login","signup","forgot","migrate","blocked"].forEach(v=>{
+        const el=document.getElementById("ce-auth-"+v);
+        if(el) el.hidden=v!=="login";
+      });
+      const message=document.getElementById("ce-auth-msg");
+      if(message){message.textContent="Sessão encerrada com segurança.";message.className="ce-auth-msg show ok";}
+    }
+    document.documentElement.classList.add("ce-auth-lock");
+    window.scrollTo({top:0,behavior:"instant"});
+  });
+})();
+</script>
 <script id="kc-v36-product-decorator">
 (()=>{
  const mark=()=>{
