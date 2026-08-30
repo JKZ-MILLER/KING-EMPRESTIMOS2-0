@@ -408,6 +408,71 @@
 }
 </style>
 
+
+<style id="kc-scroll-only-fix">
+/* KING CONTROL — correção EXCLUSIVA da rolagem da página principal.
+   A tela de inicialização permanece intocada.
+   O login continua bloqueando o scroll enquanto estiver aberto. */
+html, body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100% !important;
+}
+
+html.ce-auth-lock,
+html.ce-auth-lock body {
+  overflow: hidden !important;
+  height: 100% !important;
+}
+
+/* O aplicativo precisa poder crescer além da altura da janela. */
+#root {
+  min-height: 100vh !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+</style>
+
+
+<style id="kc-final-login-scroll-fix">
+/* Scroll da aplicação: navegador controla a rolagem normalmente. */
+html, body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100% !important;
+}
+
+/* Mantém a tela de inicialização sem rolagem durante o splash. */
+#splash, #splash-screen {
+  overflow: hidden;
+}
+
+/* Login mais compacto, sem alterar autenticação. */
+.auth-screen .auth-card,
+.login-screen .login-card,
+#loginScreen .auth-card,
+#loginScreen .login-card {
+  max-width: 430px !important;
+}
+
+.auth-screen .auth-card > *,
+.login-screen .login-card > *,
+#loginScreen .auth-card > *,
+#loginScreen .login-card > * {
+  margin-bottom: 10px;
+}
+
+.auth-screen .subtitle,
+.login-screen .subtitle,
+#loginScreen .subtitle {
+  max-width: 330px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+</style>
+
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
