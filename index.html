@@ -344,6 +344,29 @@
 </style>
 
 <style>#ce-notification-bell{position:fixed !important;top:18px !important;right:24px !important;left:auto !important;bottom:auto !important;}</style>
+<style>
+/* 2.0.1 — notificações ao lado do botão + */
+#ce-notification-bell,
+#kc-notification-bell,
+.ce-notification-bell,
+.ce-notifications-trigger{
+  position:fixed !important;
+  top:auto !important;
+  left:auto !important;
+  bottom:24px !important;
+  right:86px !important;
+  z-index:1200 !important;
+}
+@media(max-width:600px){
+  #ce-notification-bell,
+  #kc-notification-bell,
+  .ce-notification-bell,
+  .ce-notifications-trigger{
+    right:78px !important;
+    bottom:20px !important;
+  }
+}
+</style>
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
