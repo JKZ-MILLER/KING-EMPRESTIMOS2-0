@@ -326,70 +326,7 @@
 .ce-top-version{font-size:8px;font-weight:900;letter-spacing:.08em;color:#9a91a5}
 @media(max-width:900px){.ce-nav-group-title{padding-left:8px}}
 </style>
-<style>
-/* 2.0.1 — ajuste de posição das notificações */
-#ce-notification-bell,
-#kc-notification-bell,
-.ce-notification-bell,
-.ce-notifications-trigger{
-  z-index:120;
-}
-#ce-notification-bell,
-#kc-notification-bell,
-.ce-notification-bell,
-.ce-notifications-trigger{
-  bottom:auto !important;
-  right:auto !important;
-}
-</style>
-
 <style>#ce-notification-bell{position:fixed !important;top:18px !important;right:24px !important;left:auto !important;bottom:auto !important;}</style>
-<style>
-/* 2.0.1 — notificações ao lado do botão + */
-#ce-notification-bell,
-#kc-notification-bell,
-.ce-notification-bell,
-.ce-notifications-trigger{
-  position:fixed !important;
-  top:auto !important;
-  left:auto !important;
-  bottom:24px !important;
-  right:86px !important;
-  z-index:1200 !important;
-}
-@media(max-width:600px){
-  #ce-notification-bell,
-  #kc-notification-bell,
-  .ce-notification-bell,
-  .ce-notifications-trigger{
-    right:78px !important;
-    bottom:20px !important;
-  }
-}
-</style>
-<style>
-/* 2.0.1 — sino imediatamente à esquerda do botão + */
-#ce-notification-bell,
-#kc-notification-bell,
-.ce-notification-bell,
-.ce-notifications-trigger{
-  position:fixed !important;
-  top:auto !important;
-  bottom:24px !important;
-  right:78px !important;
-  left:auto !important;
-  z-index:1200 !important;
-}
-@media(max-width:600px){
-  #ce-notification-bell,
-  #kc-notification-bell,
-  .ce-notification-bell,
-  .ce-notifications-trigger{
-    bottom:20px !important;
-    right:70px !important;
-  }
-}
-</style>
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
@@ -3734,6 +3671,115 @@ $("kc-manage-plan").onclick=()=>{
  setInterval(refresh,1500); window.addEventListener('ce-data-sync',refresh); window.addEventListener('load',refresh);
 })();
 </script>
+
+<script id="kc-v201-real-notification-bell">
+(()=>{
+  const STYLE_ID="kc-v201-real-bell-style";
+  const BUTTON_ID="kc-v201-notification-bell";
+
+  if(!document.getElementById(STYLE_ID)){
+    const s=document.createElement("style");
+    s.id=STYLE_ID;
+    s.textContent=`
+      #${BUTTON_ID}{
+        position:fixed;
+        right:86px;
+        bottom:24px;
+        z-index:10021;
+        width:54px;
+        height:54px;
+        border:1px solid rgba(139,92,246,.34);
+        border-radius:18px;
+        background:linear-gradient(145deg,#171d2a,#0d131d);
+        color:#eef2f7;
+        display:grid;
+        place-items:center;
+        cursor:pointer;
+        box-shadow:0 14px 34px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04);
+        transition:transform .18s ease,border-color .18s ease;
+      }
+      #${BUTTON_ID}:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.7)}
+      #${BUTTON_ID} svg{width:21px;height:21px;display:block}
+      #${BUTTON_ID} .kc-bell-count{
+        position:absolute;
+        top:-5px;
+        right:-5px;
+        min-width:18px;
+        height:18px;
+        padding:0 5px;
+        border-radius:999px;
+        background:#fb5f66;
+        color:#fff;
+        border:2px solid #0d131d;
+        font:900 9px/14px Inter,Arial,sans-serif;
+        text-align:center;
+      }
+      @media(max-width:700px){
+        #${BUTTON_ID}{right:79px;bottom:72px;width:48px;height:48px;border-radius:15px}
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  function getData(){
+    const m=window.__CE_MEM__||{};
+    const contracts=Array.isArray(m.contracts)?m.contracts:[];
+    const now=new Date();
+    const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    let count=0;
+    contracts.forEach(c=>{
+      try{
+        if(c.quitado || ["quitado","pago","finalizado","cancelado"].includes(String(c.status||"").toLowerCase())) return;
+        const due=c.vencimento||c.dataVencimento||c.dueDate;
+        if(!due) return;
+        const d=new Date(String(due).length<=10 ? String(due)+"T23:59:59" : due);
+        if(isNaN(d)) return;
+        if(d<start || (d.getTime()>=start.getTime() && d.getTime()<start.getTime()+3*86400000)) count++;
+      }catch{}
+    });
+    return count;
+  }
+
+  function openAlerts(){
+    if(typeof window.nav==="function") window.nav("alertas");
+    else {
+      const b=[...document.querySelectorAll("button")].find(x=>/alertas/i.test(x.textContent||""));
+      if(b) b.click();
+    }
+  }
+
+  function mount(){
+    const plus=document.querySelector(".ce-quick");
+    if(!plus || document.getElementById(BUTTON_ID)) return;
+    const b=document.createElement("button");
+    b.id=BUTTON_ID;
+    b.type="button";
+    b.title="Central de alertas";
+    b.setAttribute("aria-label","Abrir central de alertas");
+    b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+      <path d="M10 21h4"/>
+    </svg><span class="kc-bell-count" hidden>0</span>`;
+    b.addEventListener("click",openAlerts);
+    document.body.appendChild(b);
+
+    const update=()=>{
+      const n=getData();
+      const badge=b.querySelector(".kc-bell-count");
+      badge.textContent=n>99?"99+":String(n);
+      badge.hidden=n<=0;
+    };
+    update();
+    window.addEventListener("ce-data-sync",update);
+    window.addEventListener("ce-toast",update);
+    setInterval(update,15000);
+  }
+
+  mount();
+  new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>
+
 </body>
 
 <style id="kc-v42-final-render-fix">
