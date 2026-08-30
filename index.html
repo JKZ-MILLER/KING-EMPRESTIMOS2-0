@@ -326,6 +326,23 @@
 .ce-top-version{font-size:8px;font-weight:900;letter-spacing:.08em;color:#9a91a5}
 @media(max-width:900px){.ce-nav-group-title{padding-left:8px}}
 </style>
+<style>
+/* 2.0.1 — ajuste de posição das notificações */
+#ce-notification-bell,
+#kc-notification-bell,
+.ce-notification-bell,
+.ce-notifications-trigger{
+  z-index:120;
+}
+#ce-notification-bell,
+#kc-notification-bell,
+.ce-notification-bell,
+.ce-notifications-trigger{
+  bottom:auto !important;
+  right:auto !important;
+}
+</style>
+
 <style>#ce-notification-bell{position:fixed !important;top:18px !important;right:24px !important;left:auto !important;bottom:auto !important;}</style>
 </head>
 <body>
@@ -3672,146 +3689,81 @@ $("kc-manage-plan").onclick=()=>{
 })();
 </script>
 
+<script id="kc-v201-safe-bell">
+(function(){
+  "use strict";
+  var ID="kc-v201-safe-bell";
+  var CSS_ID="kc-v201-safe-bell-css";
 
-
-<script id="kc-v201-topbar-notification">
-(()=>{
-  const ID="kc-v201-topbar-bell";
-  const STYLE="kc-v201-topbar-bell-style";
-
-  if(!document.getElementById(STYLE)){
-    const s=document.createElement("style");
-    s.id=STYLE;
-    s.textContent=`
-      #${ID}{
-        width:44px;
-        height:44px;
-        flex:0 0 44px;
-        padding:0;
-        margin:0;
-        border:1px solid rgba(139,92,246,.34);
-        border-radius:13px;
-        background:linear-gradient(145deg,#171d2a,#0d131d);
-        color:#eef2f7;
-        display:grid;
-        place-items:center;
-        position:relative;
-        cursor:pointer;
-        box-sizing:border-box;
-        box-shadow:0 10px 26px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04);
-        transition:transform .18s ease,border-color .18s ease;
-      }
-      #${ID}:hover{
-        transform:translateY(-1px);
-        border-color:rgba(139,92,246,.7);
-      }
-      #${ID} svg{width:20px;height:20px;display:block}
-      #${ID} .kc-bell-count{
-        position:absolute;
-        top:-5px;
-        right:-5px;
-        min-width:17px;
-        height:17px;
-        padding:0 4px;
-        border-radius:999px;
-        background:#fb5f66;
-        color:#fff;
-        border:2px solid #0d131d;
-        font:900 8px/13px Inter,Arial,sans-serif;
-        text-align:center;
-      }
-      @media(max-width:600px){
-        #${ID}{width:40px;height:40px;flex-basis:40px;border-radius:12px}
-        #${ID} svg{width:18px;height:18px}
-      }
-    `;
+  function addCss(){
+    if(document.getElementById(CSS_ID)) return;
+    var s=document.createElement("style");
+    s.id=CSS_ID;
+    s.textContent=
+      "#"+ID+"{width:44px;height:44px;flex:0 0 44px;padding:0;margin:0;border:1px solid rgba(139,92,246,.34);border-radius:13px;background:linear-gradient(145deg,#171d2a,#0d131d);color:#eef2f7;display:grid;place-items:center;position:relative;cursor:pointer;box-sizing:border-box;box-shadow:0 10px 26px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04)}"+
+      "#"+ID+":hover{transform:translateY(-1px);border-color:rgba(139,92,246,.7)}"+
+      "#"+ID+" svg{width:20px;height:20px;display:block}"+
+      "#"+ID+" .kc-count{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#fb5f66;color:#fff;border:2px solid #0d131d;font:900 8px/13px Arial,sans-serif;text-align:center}"+
+      "@media(max-width:600px){#"+ID+"{width:40px;height:40px;flex-basis:40px;border-radius:12px}#"+ID+" svg{width:18px;height:18px}}";
     document.head.appendChild(s);
   }
 
-  function countAlerts(){
-    const m=window.__CE_MEM__||{};
-    const cs=Array.isArray(m.contracts)?m.contracts:[];
-    const today=new Date(); today.setHours(0,0,0,0);
-    const limit=today.getTime()+3*86400000;
-    let n=0;
-    for(const c of cs){
-      if(c?.quitado) continue;
-      const raw=c?.vencimento||c?.dataVencimento||c?.dueDate;
-      if(!raw) continue;
-      const d=new Date(String(raw).length<=10?String(raw)+"T23:59:59":raw);
-      if(!isNaN(d) && d.getTime()<limit) n++;
+  function findPlus(){
+    var bs=document.querySelectorAll("button");
+    for(var i=0;i<bs.length;i++){
+      var b=bs[i], r=b.getBoundingClientRect();
+      if(r.top>=0 && r.top<90 && r.right>window.innerWidth-100){
+        // The top-right action is the compact button with an SVG and no label.
+        if(!((b.textContent||"").trim()) && b.querySelector("svg")) return b;
+      }
     }
-    return n;
+    return null;
   }
 
-  function openAlerts(){
-    if(typeof window.nav==="function"){
-      window.nav("alertas");
-      return;
+  function goAlerts(){
+    var bs=document.querySelectorAll("button");
+    for(var i=0;i<bs.length;i++){
+      if((bs[i].textContent||"").trim().toLowerCase()==="alertas"){
+        bs[i].click();
+        return;
+      }
     }
-    const b=[...document.querySelectorAll("button")].find(x=>/^alertas$/i.test((x.textContent||"").trim()));
-    if(b) b.click();
-  }
-
-  function findTopbarActionGroup(){
-    // The topbar is created by vg(). Find the title "Dashboard" / current title,
-    // then use the flex sibling containing the existing + button.
-    const topbar=document.querySelector("div[style*='topTitle']")?.parentElement;
-    if(topbar){
-      const children=[...topbar.children];
-      const candidate=children.find(x=>x.querySelector("button"));
-      if(candidate) return candidate;
-    }
-
-    // Robust fallback: find the visible plus button generated in the topbar
-    // and use its immediate parent.
-    const buttons=[...document.querySelectorAll("button")];
-    const plus=buttons.find(b=>{
-      const r=b.getBoundingClientRect();
-      const t=(b.textContent||"").trim();
-      return r.top<100 && r.right>window.innerWidth-120 && (t==="" || b.querySelector("svg"));
-    });
-    return plus?.parentElement||null;
   }
 
   function mount(){
-    const group=findTopbarActionGroup();
-    if(!group) return;
-
-    const plus=[...group.querySelectorAll("button")].find(b=>b.id!=="kc-v201-topbar-bell");
+    addCss();
+    var plus=findPlus();
     if(!plus) return;
 
-    let bell=document.getElementById(ID);
+    var group=plus.parentElement;
+    if(!group) return;
+
+    var bell=document.getElementById(ID);
     if(!bell){
       bell=document.createElement("button");
       bell.id=ID;
       bell.type="button";
       bell.title="Central de alertas";
       bell.setAttribute("aria-label","Abrir central de alertas");
-      bell.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-        <path d="M10 21h4"/>
-      </svg><span class="kc-bell-count" hidden>0</span>`;
-      bell.addEventListener("click",openAlerts);
+      bell.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="kc-count" hidden>0</span>';
+      bell.addEventListener("click",goAlerts);
+      group.insertBefore(bell,plus);
+    } else if(bell.nextElementSibling!==plus){
+      group.insertBefore(bell,plus);
     }
-
-    // Keep the bell in exactly the same flex row as the plus, immediately left.
-    if(bell.parentElement!==group || bell.nextElementSibling!==plus){
-      plus.before(bell);
-    }
-
-    const n=countAlerts();
-    const badge=bell.querySelector(".kc-bell-count");
-    badge.textContent=n>99?"99+":String(n);
-    badge.hidden=n<=0;
   }
 
-  mount();
-  window.addEventListener("resize",mount,{passive:true});
-  window.addEventListener("ce-data-sync",mount);
-  new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});
-  setInterval(mount,1000);
+  // Deliberately do not use a broad MutationObserver: it can loop forever
+  // when the notification badge itself changes.
+  function start(){
+    mount();
+    setTimeout(mount,300);
+    setTimeout(mount,1000);
+    window.addEventListener("resize",mount);
+  }
+
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",start);
+  else start();
 })();
 </script>
 
