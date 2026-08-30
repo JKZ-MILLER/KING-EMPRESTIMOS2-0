@@ -260,7 +260,7 @@
 .ce-dashboard-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,.8fr);gap:14px}
 .ce-panel{background:#fff;border:1px solid #e7e3ee;border-radius:14px;padding:17px;box-shadow:0 4px 18px rgba(35,24,60,.035);min-width:0}
 .ce-table-panel,.ce-quick{grid-column:1/-1}
-.ce-panel-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.ce-panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .ce-panel-head h3,.ce-quick h3{margin:0;font-size:14px;font-weight:800}.ce-panel-head p,.ce-quick p{margin:4px 0 0;font-size:11px;color:#8b8496}
 .ce-bars{display:flex;flex-direction:column;gap:11px}.ce-bar-row{display:grid;grid-template-columns:120px 1fr 90px;gap:10px;align-items:center;cursor:pointer}.ce-bar-name{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ce-bar-row b{font-size:11px;text-align:right;color:#4e4758}
 .ce-bar-track{height:8px;background:#f0edf5;border-radius:99px;overflow:hidden}.ce-bar-fill{height:100%;background:linear-gradient(90deg,#7544e8,#9c7af0);border-radius:99px;min-width:4px}
@@ -378,6 +378,26 @@
 @media(max-width:980px){.kc-plans-grid{grid-template-columns:1fr 1fr!important}.kc-free-card{grid-column:1/-1}}
 @media(max-width:700px){.kc-plans-grid{grid-template-columns:1fr!important}.kc-free-card{grid-column:auto}}
 </style>
+
+<style id="kc-startup-logo-center-fix">
+/* KING CONTROL — centraliza a logo e a aura da inicialização */
+#splash,
+#splash-screen,
+.startup-screen,
+.initialization-screen {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+#splash .logo,
+#splash-screen .logo,
+.startup-screen .logo,
+.initialization-screen .logo {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+</style>
+
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
