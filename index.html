@@ -3672,111 +3672,121 @@ $("kc-manage-plan").onclick=()=>{
 })();
 </script>
 
+
 <script id="kc-v201-real-notification-bell">
 (()=>{
-  const STYLE_ID="kc-v201-real-bell-style";
-  const BUTTON_ID="kc-v201-notification-bell";
+  const ID="kc-v201-real-notification-bell";
+  const STYLE="kc-v201-real-notification-bell-style";
 
-  if(!document.getElementById(STYLE_ID)){
+  if(!document.getElementById(STYLE)){
     const s=document.createElement("style");
-    s.id=STYLE_ID;
+    s.id=STYLE;
     s.textContent=`
-      #${BUTTON_ID}{
-        position:fixed;
-        right:86px;
-        bottom:24px;
-        z-index:10021;
-        width:54px;
-        height:54px;
-        border:1px solid rgba(139,92,246,.34);
-        border-radius:18px;
-        background:linear-gradient(145deg,#171d2a,#0d131d);
-        color:#eef2f7;
-        display:grid;
-        place-items:center;
-        cursor:pointer;
-        box-shadow:0 14px 34px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04);
-        transition:transform .18s ease,border-color .18s ease;
+      #${ID}{
+        position:fixed!important;
+        width:54px!important;
+        height:54px!important;
+        padding:0!important;
+        margin:0!important;
+        border:1px solid rgba(139,92,246,.34)!important;
+        border-radius:18px!important;
+        background:linear-gradient(145deg,#171d2a,#0d131d)!important;
+        color:#eef2f7!important;
+        display:grid!important;
+        place-items:center!important;
+        cursor:pointer!important;
+        box-shadow:0 14px 34px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04)!important;
+        z-index:10021!important;
+        box-sizing:border-box!important;
       }
-      #${BUTTON_ID}:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.7)}
-      #${BUTTON_ID} svg{width:21px;height:21px;display:block}
-      #${BUTTON_ID} .kc-bell-count{
-        position:absolute;
-        top:-5px;
-        right:-5px;
-        min-width:18px;
-        height:18px;
-        padding:0 5px;
-        border-radius:999px;
-        background:#fb5f66;
-        color:#fff;
-        border:2px solid #0d131d;
-        font:900 9px/14px Inter,Arial,sans-serif;
-        text-align:center;
+      #${ID}:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.7)!important}
+      #${ID} svg{width:21px;height:21px;display:block}
+      #${ID} .kc-bell-count{
+        position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;
+        padding:0 5px;border-radius:999px;background:#fb5f66;color:#fff;
+        border:2px solid #0d131d;font:900 9px/14px Inter,Arial,sans-serif;text-align:center;
       }
       @media(max-width:700px){
-        #${BUTTON_ID}{right:79px;bottom:72px;width:48px;height:48px;border-radius:15px}
+        #${ID}{width:48px!important;height:48px!important;border-radius:15px!important}
       }
     `;
     document.head.appendChild(s);
   }
 
-  function getData(){
-    const m=window.__CE_MEM__||{};
-    const contracts=Array.isArray(m.contracts)?m.contracts:[];
-    const now=new Date();
-    const start=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-    let count=0;
-    contracts.forEach(c=>{
-      try{
-        if(c.quitado || ["quitado","pago","finalizado","cancelado"].includes(String(c.status||"").toLowerCase())) return;
-        const due=c.vencimento||c.dataVencimento||c.dueDate;
-        if(!due) return;
-        const d=new Date(String(due).length<=10 ? String(due)+"T23:59:59" : due);
-        if(isNaN(d)) return;
-        if(d<start || (d.getTime()>=start.getTime() && d.getTime()<start.getTime()+3*86400000)) count++;
-      }catch{}
+  const getCount=()=>{
+    const m=window.__CE_MEM__||{}, cs=Array.isArray(m.contracts)?m.contracts:[];
+    const today=new Date(); today.setHours(0,0,0,0);
+    const limit=today.getTime()+3*86400000;
+    let n=0;
+    cs.forEach(c=>{
+      if(c.quitado) return;
+      const raw=c.vencimento||c.dataVencimento||c.dueDate;
+      if(!raw) return;
+      const d=new Date(String(raw).length<=10?String(raw)+"T23:59:59":raw);
+      if(!isNaN(d) && d.getTime()<limit) n++;
     });
-    return count;
-  }
+    return n;
+  };
 
-  function openAlerts(){
+  const goAlerts=()=>{
     if(typeof window.nav==="function") window.nav("alertas");
-    else {
-      const b=[...document.querySelectorAll("button")].find(x=>/alertas/i.test(x.textContent||""));
+    else{
+      const b=[...document.querySelectorAll("button")].find(x=>/^alertas$/i.test((x.textContent||"").trim()));
       if(b) b.click();
     }
+  };
+
+  let lastPlus=null;
+
+  function position(){
+    const plus=document.querySelector(".ce-quick");
+    const bell=document.getElementById(ID);
+    if(!plus||!bell) return;
+
+    const r=plus.getBoundingClientRect();
+    const gap=8;
+    const br=bell.getBoundingClientRect();
+
+    // Anchor directly to the left of the real "+" button.
+    bell.style.right="auto";
+    bell.style.left=Math.max(8,r.left-br.width-gap)+"px";
+    bell.style.top=Math.max(8,r.top+(r.height-br.height)/2)+"px";
+
+    lastPlus=plus;
   }
 
   function mount(){
     const plus=document.querySelector(".ce-quick");
-    if(!plus || document.getElementById(BUTTON_ID)) return;
-    const b=document.createElement("button");
-    b.id=BUTTON_ID;
-    b.type="button";
-    b.title="Central de alertas";
-    b.setAttribute("aria-label","Abrir central de alertas");
-    b.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-      <path d="M10 21h4"/>
-    </svg><span class="kc-bell-count" hidden>0</span>`;
-    b.addEventListener("click",openAlerts);
-    document.body.appendChild(b);
+    if(!plus) return;
 
-    const update=()=>{
-      const n=getData();
-      const badge=b.querySelector(".kc-bell-count");
-      badge.textContent=n>99?"99+":String(n);
-      badge.hidden=n<=0;
-    };
-    update();
-    window.addEventListener("ce-data-sync",update);
-    window.addEventListener("ce-toast",update);
-    setInterval(update,15000);
+    let bell=document.getElementById(ID);
+    if(!bell){
+      bell=document.createElement("button");
+      bell.id=ID;
+      bell.type="button";
+      bell.title="Central de alertas";
+      bell.setAttribute("aria-label","Abrir central de alertas");
+      bell.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
+        <path d="M10 21h4"/>
+      </svg><span class="kc-bell-count" hidden>0</span>`;
+      bell.addEventListener("click",goAlerts);
+      document.body.appendChild(bell);
+    }
+
+    const count=bell.querySelector(".kc-bell-count");
+    const n=getCount();
+    count.textContent=n>99?"99+":String(n);
+    count.hidden=n<=0;
+    position();
   }
 
   mount();
+  window.addEventListener("resize",position,{passive:true});
+  window.addEventListener("scroll",position,{passive:true});
+  window.addEventListener("ce-data-sync",mount);
   new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});
+  setInterval(position,1000);
 })();
 </script>
 
