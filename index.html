@@ -326,6 +326,24 @@
 .ce-top-version{font-size:8px;font-weight:900;letter-spacing:.08em;color:#9a91a5}
 @media(max-width:900px){.ce-nav-group-title{padding-left:8px}}
 </style>
+<style>
+/* 2.0.1 — ajuste de posição das notificações */
+#ce-notification-bell,
+#kc-notification-bell,
+.ce-notification-bell,
+.ce-notifications-trigger{
+  z-index:120;
+}
+#ce-notification-bell,
+#kc-notification-bell,
+.ce-notification-bell,
+.ce-notifications-trigger{
+  bottom:auto !important;
+  right:auto !important;
+}
+</style>
+
+<style>#ce-notification-bell{position:fixed !important;top:18px !important;right:24px !important;left:auto !important;bottom:auto !important;}</style>
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
