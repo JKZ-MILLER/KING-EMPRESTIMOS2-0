@@ -3673,90 +3673,112 @@ $("kc-manage-plan").onclick=()=>{
 </script>
 
 
-<script id="kc-v201-real-notification-bell">
+
+<script id="kc-v201-topbar-notification">
 (()=>{
-  const ID="kc-v201-real-notification-bell";
-  const STYLE="kc-v201-real-notification-bell-style";
+  const ID="kc-v201-topbar-bell";
+  const STYLE="kc-v201-topbar-bell-style";
 
   if(!document.getElementById(STYLE)){
     const s=document.createElement("style");
     s.id=STYLE;
     s.textContent=`
       #${ID}{
-        position:fixed!important;
-        width:54px!important;
-        height:54px!important;
-        padding:0!important;
-        margin:0!important;
-        border:1px solid rgba(139,92,246,.34)!important;
-        border-radius:18px!important;
-        background:linear-gradient(145deg,#171d2a,#0d131d)!important;
-        color:#eef2f7!important;
-        display:grid!important;
-        place-items:center!important;
-        cursor:pointer!important;
-        box-shadow:0 14px 34px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.04)!important;
-        z-index:10021!important;
-        box-sizing:border-box!important;
+        width:44px;
+        height:44px;
+        flex:0 0 44px;
+        padding:0;
+        margin:0;
+        border:1px solid rgba(139,92,246,.34);
+        border-radius:13px;
+        background:linear-gradient(145deg,#171d2a,#0d131d);
+        color:#eef2f7;
+        display:grid;
+        place-items:center;
+        position:relative;
+        cursor:pointer;
+        box-sizing:border-box;
+        box-shadow:0 10px 26px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.04);
+        transition:transform .18s ease,border-color .18s ease;
       }
-      #${ID}:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.7)!important}
-      #${ID} svg{width:21px;height:21px;display:block}
+      #${ID}:hover{
+        transform:translateY(-1px);
+        border-color:rgba(139,92,246,.7);
+      }
+      #${ID} svg{width:20px;height:20px;display:block}
       #${ID} .kc-bell-count{
-        position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;
-        padding:0 5px;border-radius:999px;background:#fb5f66;color:#fff;
-        border:2px solid #0d131d;font:900 9px/14px Inter,Arial,sans-serif;text-align:center;
+        position:absolute;
+        top:-5px;
+        right:-5px;
+        min-width:17px;
+        height:17px;
+        padding:0 4px;
+        border-radius:999px;
+        background:#fb5f66;
+        color:#fff;
+        border:2px solid #0d131d;
+        font:900 8px/13px Inter,Arial,sans-serif;
+        text-align:center;
       }
-      @media(max-width:700px){
-        #${ID}{width:48px!important;height:48px!important;border-radius:15px!important}
+      @media(max-width:600px){
+        #${ID}{width:40px;height:40px;flex-basis:40px;border-radius:12px}
+        #${ID} svg{width:18px;height:18px}
       }
     `;
     document.head.appendChild(s);
   }
 
-  const getCount=()=>{
-    const m=window.__CE_MEM__||{}, cs=Array.isArray(m.contracts)?m.contracts:[];
+  function countAlerts(){
+    const m=window.__CE_MEM__||{};
+    const cs=Array.isArray(m.contracts)?m.contracts:[];
     const today=new Date(); today.setHours(0,0,0,0);
     const limit=today.getTime()+3*86400000;
     let n=0;
-    cs.forEach(c=>{
-      if(c.quitado) return;
-      const raw=c.vencimento||c.dataVencimento||c.dueDate;
-      if(!raw) return;
+    for(const c of cs){
+      if(c?.quitado) continue;
+      const raw=c?.vencimento||c?.dataVencimento||c?.dueDate;
+      if(!raw) continue;
       const d=new Date(String(raw).length<=10?String(raw)+"T23:59:59":raw);
       if(!isNaN(d) && d.getTime()<limit) n++;
-    });
-    return n;
-  };
-
-  const goAlerts=()=>{
-    if(typeof window.nav==="function") window.nav("alertas");
-    else{
-      const b=[...document.querySelectorAll("button")].find(x=>/^alertas$/i.test((x.textContent||"").trim()));
-      if(b) b.click();
     }
-  };
+    return n;
+  }
 
-  let lastPlus=null;
+  function openAlerts(){
+    if(typeof window.nav==="function"){
+      window.nav("alertas");
+      return;
+    }
+    const b=[...document.querySelectorAll("button")].find(x=>/^alertas$/i.test((x.textContent||"").trim()));
+    if(b) b.click();
+  }
 
-  function position(){
-    const plus=document.querySelector(".ce-quick");
-    const bell=document.getElementById(ID);
-    if(!plus||!bell) return;
+  function findTopbarActionGroup(){
+    // The topbar is created by vg(). Find the title "Dashboard" / current title,
+    // then use the flex sibling containing the existing + button.
+    const topbar=document.querySelector("div[style*='topTitle']")?.parentElement;
+    if(topbar){
+      const children=[...topbar.children];
+      const candidate=children.find(x=>x.querySelector("button"));
+      if(candidate) return candidate;
+    }
 
-    const r=plus.getBoundingClientRect();
-    const gap=8;
-    const br=bell.getBoundingClientRect();
-
-    // Anchor directly to the left of the real "+" button.
-    bell.style.right="auto";
-    bell.style.left=Math.max(8,r.left-br.width-gap)+"px";
-    bell.style.top=Math.max(8,r.top+(r.height-br.height)/2)+"px";
-
-    lastPlus=plus;
+    // Robust fallback: find the visible plus button generated in the topbar
+    // and use its immediate parent.
+    const buttons=[...document.querySelectorAll("button")];
+    const plus=buttons.find(b=>{
+      const r=b.getBoundingClientRect();
+      const t=(b.textContent||"").trim();
+      return r.top<100 && r.right>window.innerWidth-120 && (t==="" || b.querySelector("svg"));
+    });
+    return plus?.parentElement||null;
   }
 
   function mount(){
-    const plus=document.querySelector(".ce-quick");
+    const group=findTopbarActionGroup();
+    if(!group) return;
+
+    const plus=[...group.querySelectorAll("button")].find(b=>b.id!=="kc-v201-topbar-bell");
     if(!plus) return;
 
     let bell=document.getElementById(ID);
@@ -3766,27 +3788,30 @@ $("kc-manage-plan").onclick=()=>{
       bell.type="button";
       bell.title="Central de alertas";
       bell.setAttribute("aria-label","Abrir central de alertas");
-      bell.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      bell.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
         <path d="M10 21h4"/>
       </svg><span class="kc-bell-count" hidden>0</span>`;
-      bell.addEventListener("click",goAlerts);
-      document.body.appendChild(bell);
+      bell.addEventListener("click",openAlerts);
     }
 
-    const count=bell.querySelector(".kc-bell-count");
-    const n=getCount();
-    count.textContent=n>99?"99+":String(n);
-    count.hidden=n<=0;
-    position();
+    // Keep the bell in exactly the same flex row as the plus, immediately left.
+    if(bell.parentElement!==group || bell.nextElementSibling!==plus){
+      plus.before(bell);
+    }
+
+    const n=countAlerts();
+    const badge=bell.querySelector(".kc-bell-count");
+    badge.textContent=n>99?"99+":String(n);
+    badge.hidden=n<=0;
   }
 
   mount();
-  window.addEventListener("resize",position,{passive:true});
-  window.addEventListener("scroll",position,{passive:true});
+  window.addEventListener("resize",mount,{passive:true});
   window.addEventListener("ce-data-sync",mount);
   new MutationObserver(mount).observe(document.documentElement,{childList:true,subtree:true});
-  setInterval(position,1000);
+  setInterval(mount,1000);
 })();
 </script>
 
