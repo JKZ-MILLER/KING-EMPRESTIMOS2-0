@@ -270,7 +270,8 @@
 .ce-quick{display:flex;align-items:center;justify-content:space-between;gap:20px}.ce-quick-grid{display:grid;grid-template-columns:repeat(4,auto);gap:8px}.ce-quick-grid button{background:#faf9fc;border:1px solid #e5e1eb;border-radius:9px;padding:9px 12px;color:#514a5e;font-size:11px;font-weight:700;cursor:pointer}.ce-quick-grid button:hover{border-color:#cbbbea;background:#f8f5ff}
 .ce-empty-clean{text-align:center;padding:25px;color:#9b94a5;font-size:11px}
 @media(max-width:1050px){.ce-kpi-grid{grid-template-columns:repeat(3,1fr)}.ce-dashboard-grid{grid-template-columns:1fr}.ce-table-panel,.ce-quick{grid-column:auto}}
-@media(max-width:650px){.ce-dashboard-head{align-items:flex-start;flex-direction:column}.ce-dashboard-actions{width:100%}.ce-btn-primary,.ce-btn-secondary{flex:1}.ce-kpi-grid{grid-template-columns:repeat(2,1fr)}.ce-quick{display:block}.ce-quick-grid{grid-template-columns:1fr 1fr;margin-top:12px}.ce-bar-row{grid-template-columns:90px 1fr 75px}}
+@media(max-width:650px){
+  #kc27-loader .kc27-loader-orbit{top:43%!important}.ce-dashboard-head{align-items:flex-start;flex-direction:column}.ce-dashboard-actions{width:100%}.ce-btn-primary,.ce-btn-secondary{flex:1}.ce-kpi-grid{grid-template-columns:repeat(2,1fr)}.ce-quick{display:block}.ce-quick-grid{grid-template-columns:1fr 1fr;margin-top:12px}.ce-bar-row{grid-template-columns:90px 1fr 75px}}
 </style>
 
 <style id="ce-dashboard-clean-v2-fix">
@@ -382,13 +383,15 @@
 <style id="kc27-loader-centered-final">
 /* KING CONTROL — tela de inicialização: logo centralizada como elemento principal */
 #kc27-loader{position:fixed!important;inset:0!important;display:block!important;overflow:hidden!important}
-#kc27-loader .kc27-loader-orbit{position:absolute!important;left:50%!important;top:50%!important;margin:0!important}
+#kc27-loader .kc27-loader-orbit{position:absolute!important;left:50%!important;top:46%!important;margin:0!important}
 #kc27-loader .kc27-orbit-a{width:290px!important;height:290px!important;transform:translate(-50%,-50%)!important}
 #kc27-loader .kc27-orbit-b{width:490px!important;height:490px!important;transform:translate(-50%,-50%)!important}
 #kc27-loader .kc27-orbit-c{width:760px!important;height:760px!important;transform:translate(-50%,-50%)!important}
 #kc27-loader .kc27-loader-core{position:absolute!important;z-index:2!important;left:50%!important;top:46%!important;width:230px!important;height:230px!important;margin:0!important;transform:translate(-50%,-50%)!important;border-radius:50%!important;overflow:hidden!important;background:#090a12!important;border:2px solid rgba(177,122,255,.72)!important;box-shadow:0 0 0 8px rgba(139,92,246,.08),0 0 34px rgba(139,92,246,.58),inset 0 0 24px rgba(139,92,246,.18)!important}
 #kc27-loader .kc27-loader-core img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;display:block!important}
-#kc27-loader .kc27-loader-glow{left:50%!important;top:50%!important;transform:translate(-50%,-50%)!important}
+#kc27-loader .kc27-loader-glow{position:absolute!important;left:50%!important;top:50%!important;width:72%!important;height:72%!important;transform:translate(-50%,-50%)!important;border-radius:50%!important;background:radial-gradient(circle,rgba(177,122,255,.42) 0%,rgba(139,92,246,.22) 34%,rgba(139,92,246,.08) 58%,transparent 76%)!important;filter:blur(18px)!important;z-index:-1!important;pointer-events:none!important}
+#kc27-loader .kc27-loader-orbit{z-index:0!important;transform-origin:center!important}
+#kc27-loader .kc27-loader-core{z-index:2!important}
 #kc27-loader .kc27-loader-title{position:absolute!important;z-index:2!important;left:50%!important;top:calc(46% + 145px)!important;margin:0!important;transform:translateX(-50%)!important;white-space:nowrap!important}
 #kc27-loader .kc27-loader-sub{position:absolute!important;z-index:2!important;left:50%!important;top:calc(46% + 188px)!important;margin:0!important;transform:translateX(-50%)!important;white-space:nowrap!important}
 #kc27-loader .kc27-loadline{position:absolute!important;z-index:2!important;left:50%!important;top:calc(46% + 235px)!important;margin:0!important;transform:translateX(-50%)!important}
