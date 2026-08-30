@@ -367,6 +367,29 @@
   }
 }
 </style>
+<style>
+/* 2.0.1 — sino imediatamente à esquerda do botão + */
+#ce-notification-bell,
+#kc-notification-bell,
+.ce-notification-bell,
+.ce-notifications-trigger{
+  position:fixed !important;
+  top:auto !important;
+  bottom:24px !important;
+  right:78px !important;
+  left:auto !important;
+  z-index:1200 !important;
+}
+@media(max-width:600px){
+  #ce-notification-bell,
+  #kc-notification-bell,
+  .ce-notification-bell,
+  .ce-notifications-trigger{
+    bottom:20px !important;
+    right:70px !important;
+  }
+}
+</style>
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
