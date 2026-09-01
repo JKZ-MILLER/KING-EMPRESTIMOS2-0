@@ -359,6 +359,23 @@
 </style>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#080b14">
+<style id="kc-main-only-scroll">
+/* Apenas a tela principal/landing usa a rolagem natural do navegador. */
+#kc27-landing{
+ position:absolute!important;
+ top:0!important;
+ left:0!important;
+ right:0!important;
+ width:100%!important;
+ min-height:100vh!important;
+ height:auto!important;
+ overflow:visible!important;
+}
+#kc27-landing .kc27-shell{
+ min-height:100vh!important;
+ height:auto!important;
+}
+</style>
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
@@ -2907,9 +2924,25 @@ setTimeout(refreshAccess,700);
    try{
      const {data:{user}}=await c.auth.getUser();
      if(!user)return;
-     const {data,error}=await c.from("profiles").select("status").eq("id",user.id).maybeSingle();
-     if(!error && data?.status==="blocked"){
-       window.dispatchEvent(new CustomEvent("ce-access-blocked"));
+     const {data,error}=await c.from("profiles")
+       .select("status,role,plan,subscription_status,subscription_ends_at,expires_at")
+       .eq("id",user.id).maybeSingle();
+     if(!error && data){
+       const role=String(data.role||"user").toLowerCase();
+       const plan=String(data.plan||"free").toLowerCase();
+       const status=String(data.status||"blocked").toLowerCase();
+       const ends=data.subscription_ends_at||data.expires_at;
+       const expired=ends ? new Date(ends).getTime()<=Date.now() : false;
+
+       const isAdmin=role==="admin";
+       const isFree=plan==="free";
+       const isPro=["pro","pro_monthly","pro_annual"].includes(plan);
+       const proInvalid=isPro && (status!=="active" || expired ||
+         !["active","trialing","cancelled"].includes(String(data.subscription_status||"inactive").toLowerCase()));
+
+       if(!isAdmin && !isFree && (status==="blocked" || proInvalid)){
+         window.dispatchEvent(new CustomEvent("ce-access-blocked"));
+       }
      }
    }catch(e){console.error("[CE Block Guard]",e)}
    finally{checking=false}
@@ -3080,32 +3113,80 @@ function withTimeout(promise,ms=12000){
 async function ceCheckAccountAccess(){
  try{
    const {data:{session},error:se}=await withTimeout(client.auth.getSession());
-   if(se) throw se;
+   if(se)throw se;
    const user=session?.user;
    if(!user)return {ok:false,error:new Error("Não foi possível localizar a sessão do usuário.")};
-   const {data:profile,error:pe}=await withTimeout(client.from("profiles").select("status,role,trial_ends_at").eq("id",user.id).maybeSingle());
-   if(pe) throw pe;
-   if(!profile){
-     return {ok:false,error:new Error("Sua conta foi autenticada, mas o perfil ainda não foi encontrado no sistema.")};
-   }
-   if(profile.status!=="active") return {ok:false,blocked:true,user};
-   if(profile.trial_ends_at && new Date(profile.trial_ends_at).getTime()<=Date.now()) return {ok:false,blocked:true,user,expired:true};
+
+   const {data:profile,error:pe}=await withTimeout(
+     client.from("profiles")
+       .select("id,email,full_name,role,status,plan,subscription_status,expires_at,trial_ends_at,subscription_started_at,subscription_ends_at")
+       .eq("id",user.id)
+       .maybeSingle()
+   );
+   if(pe)throw pe;
+   if(!profile)return {ok:false,error:new Error("Sua conta foi autenticada, mas o perfil ainda não foi encontrado no sistema.")};
+
+   const role=String(profile.role||"user").toLowerCase();
+   const plan=String(profile.plan||"free").toLowerCase();
+   const status=String(profile.status||"blocked").toLowerCase();
+   const subscriptionStatus=String(profile.subscription_status||"inactive").toLowerCase();
+
    window.__CE_CURRENT_USER__=user;
-   return {ok:true,user};
- }catch(e){console.error("[CE Access]",e);return {ok:false,error:e}}
+   window.__CE_PROFILE__=profile;
+
+   // ADMIN: acesso máximo, independentemente de assinatura.
+   if(role==="admin"){
+     return {ok:true,user,profile,accessLevel:"admin"};
+   }
+
+   // FREE: acesso à versão gratuita. Não depende de assinatura.
+   if(plan==="free"){
+     return {ok:true,user,profile,accessLevel:"free"};
+   }
+
+   // PRO: acesso enquanto a assinatura estiver válida.
+   if(plan==="pro"||plan==="pro_monthly"||plan==="pro_annual"){
+     const ends=profile.subscription_ends_at||profile.expires_at;
+     const expired=ends ? new Date(ends).getTime()<=Date.now() : false;
+     const activeStatus=["active","trialing"].includes(status);
+     const activeSubscription=["active","trialing","cancelled"].includes(subscriptionStatus);
+
+     if(activeStatus && activeSubscription && !expired){
+       return {ok:true,user,profile,accessLevel:"pro"};
+     }
+
+     // PRO expirado/cancelado: continua no FREE em vez de cair na cobrança antiga.
+     return {ok:true,user,profile:{...profile,plan:"free"},accessLevel:"free",downgraded:true};
+   }
+
+   // Plano desconhecido: fallback seguro para FREE.
+   return {ok:true,user,profile:{...profile,plan:"free"},accessLevel:"free",downgraded:true};
+ }catch(e){
+   console.error("[CE Access]",e);
+   return {ok:false,error:e};
+ }
 }
 async function openApp(){
  if(window.__CE_NEEDS_LEGACY_PIN__){showView("migrate");return false;}
+
  const access=await ceCheckAccountAccess();
  if(!access.ok){
    root.classList.remove("ce-auth-hidden");
    document.documentElement.classList.add("ce-auth-lock");
-   if(access.blocked) showView("blocked");
-   else if(access.error) setMsg(access.error.message||"Não foi possível validar seu acesso.","error");
+   if(access.blocked)showView("blocked");
+   else if(access.error)setMsg(access.error.message||"Não foi possível validar seu acesso.","error");
    return false;
  }
- root.classList.add("ce-auth-hidden");document.documentElement.classList.remove("ce-auth-lock");
- window.dispatchEvent(new CustomEvent("ce-session-ready",{detail:{user:access.user}}));
+
+ window.__CE_ACCESS_LEVEL__=access.accessLevel||"free";
+ window.__CE_PROFILE__=access.profile||null;
+ root.classList.add("ce-auth-hidden");
+ document.documentElement.classList.remove("ce-auth-lock");
+ window.dispatchEvent(new CustomEvent("ce-session-ready",{detail:{
+   user:access.user,
+   profile:access.profile,
+   accessLevel:access.accessLevel
+ }}));
  return true;
 }
 async function signOut(){const r=await client.auth.signOut();window.__CE_CURRENT_USER__=null;window.dispatchEvent(new CustomEvent("ce-session-ended"));return r}
@@ -3242,7 +3323,7 @@ document.getElementById("ce-skip-legacy").addEventListener("click",()=>{
     setTimeout(openApp,450);
   }catch(e){setMsg("Não foi possível preparar o backup dos dados antigos: "+(e&&e.message?e.message:"erro desconhecido"),"error")}
 });
-client.auth.onAuthStateChange((event,session)=>{if(event==="PASSWORD_RECOVERY"||isRecoveryCallback())return;if(session&&event==="SIGNED_IN")openApp()});
+client.auth.onAuthStateChange((event,session)=>{if(event==="PASSWORD_RECOVERY"||isRecoveryCallback()){showRecoveryScreen();return;}if(session&&event==="SIGNED_IN")openApp()});
 window.__CE_LOGOUT__=signOut;
 })();
 </script>
@@ -3989,12 +4070,6 @@ html,body{max-width:100%!important;overflow-x:hidden!important}
   .ce-sheet-summary,.ce-report-grid{grid-template-columns:1fr!important}
   .ce-sheet-v4-copy h1{font-size:28px!important}
 }
-</style>
-
-<style id="kc-final-safe-fixes">
-/* Scroll nativo somente da página principal; a tela de carregamento permanece intacta. */
-html body #kc27-landing{position:absolute!important;top:0!important;left:0!important;right:0!important;width:100%!important;height:auto!important;min-height:100vh!important;overflow:visible!important}
-html body #kc27-landing .kc27-shell{min-height:100vh!important}
 </style>
 
 <script id="kc-final-tail-fixes">
