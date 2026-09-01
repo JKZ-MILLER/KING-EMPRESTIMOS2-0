@@ -376,6 +376,29 @@
  height:auto!important;
 }
 </style>
+
+<style id="kc-loader-round-only">
+/* Correção visual isolada da logo do carregamento. */
+#kc27-loader .kc27-loader-core{
+  border-radius:50%!important;
+  overflow:hidden!important;
+  clip-path:circle(50% at 50% 50%)!important;
+}
+#kc27-loader .kc27-loader-core img{
+  border-radius:50%!important;
+  overflow:hidden!important;
+  clip-path:circle(50% at 50% 50%)!important;
+}
+</style>
+
+<style id="kc-account-cursor-only">
+/* "Minha conta" é cabeçalho informativo: cursor de seta, não cursor de texto. */
+.kc27-sidebar > div:first-child,
+.kc27-sidebar > div:first-child *,
+[class*="sidebar"] > div:first-child{
+  cursor:default!important;
+}
+</style>
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
