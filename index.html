@@ -399,6 +399,84 @@
   cursor:default!important;
 }
 </style>
+
+<style id="kc-loader-center-and-indicator">
+/* === CARREGAMENTO: centro geométrico único === */
+#kc27-loader .kc27-loader-orbit{
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+}
+#kc27-loader .kc27-loader-core{
+  position:relative!important;
+  z-index:2!important;
+  flex:0 0 auto!important;
+}
+#kc27-loader .kc27-loader-glow{
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  pointer-events:none!important;
+}
+#kc27-loader .kc27-loader-core img{
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  border-radius:50%!important;
+  clip-path:circle(50% at 50% 50%)!important;
+}
+
+/* === INDICADOR PRÓPRIO DO KING CONTROL === */
+#kc-pointer{
+  position:fixed;
+  left:0;
+  top:0;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#c49aff;
+  box-shadow:0 0 14px rgba(174,115,255,.85),0 0 0 4px rgba(139,92,246,.10);
+  pointer-events:none;
+  z-index:2147483647;
+  opacity:0;
+  transform:translate(-50%,-50%);
+  transition:width .16s ease,height .16s ease,opacity .18s ease,background .16s ease,box-shadow .16s ease;
+}
+#kc-pointer-ring{
+  position:fixed;
+  left:0;
+  top:0;
+  width:30px;
+  height:30px;
+  border:1px solid rgba(196,154,255,.55);
+  border-radius:50%;
+  pointer-events:none;
+  z-index:2147483646;
+  opacity:0;
+  transform:translate(-50%,-50%);
+  transition:width .22s ease,height .22s ease,border-color .16s ease,opacity .18s ease;
+}
+@media (pointer:fine){
+  html.kc-pointer-ready body,
+  html.kc-pointer-ready body *{
+    cursor:none!important;
+  }
+}
+#kc-pointer.kc-pointer-hover{
+  width:6px;
+  height:6px;
+  background:#fff;
+  box-shadow:0 0 18px rgba(196,154,255,1);
+}
+#kc-pointer-ring.kc-pointer-hover{
+  width:42px;
+  height:42px;
+  border-color:rgba(196,154,255,.85);
+}
+#kc-pointer.kc-pointer-hidden,#kc-pointer-ring.kc-pointer-hidden{
+  opacity:0;
+}
+</style>
 </head>
 <body>
 <!-- KING CONTROL / EXPERIENCE LAYER -->
@@ -4108,5 +4186,53 @@ function isValidWhatsApp(value) {
   return String(value || "").replace(/\D/g, "").length >= 10;
 }
 </script>
+
+<script id="kc-custom-pointer">
+(()=>{
+  if(!window.matchMedia("(pointer:fine)").matches)return;
+  const dot=document.createElement("div");
+  const ring=document.createElement("div");
+  dot.id="kc-pointer"; ring.id="kc-pointer-ring";
+  document.body.append(dot,ring);
+  document.documentElement.classList.add("kc-pointer-ready");
+
+  let x=0,y=0,rx=0,ry=0,visible=false;
+  const move=e=>{
+    x=e.clientX;y=e.clientY;
+    if(!visible){
+      visible=true;
+      dot.style.opacity="1";
+      ring.style.opacity="1";
+    }
+    dot.style.left=x+"px";dot.style.top=y+"px";
+  };
+  const animate=()=>{
+    rx+=(x-rx)*.18; ry+=(y-ry)*.18;
+    ring.style.left=rx+"px";ring.style.top=ry+"px";
+    requestAnimationFrame(animate);
+  };
+  const interactive=e=>{
+    const el=e.target.closest("button,a,input,select,textarea,[role='button'],[tabindex]:not([tabindex='-1'])");
+    const on=!!el;
+    dot.classList.toggle("kc-pointer-hover",on);
+    ring.classList.toggle("kc-pointer-hover",on);
+  };
+  document.addEventListener("mousemove",move,{passive:true});
+  document.addEventListener("mouseover",interactive,{passive:true});
+  document.addEventListener("mouseout",e=>{
+    if(!e.relatedTarget){
+      dot.style.opacity="0";ring.style.opacity="0";visible=false;
+    }
+  },{passive:true});
+  document.addEventListener("mouseleave",()=>{
+    dot.style.opacity="0";ring.style.opacity="0";visible=false;
+  },{passive:true});
+  document.addEventListener("mouseenter",()=>{
+    if(visible){dot.style.opacity="1";ring.style.opacity="1";}
+  },{passive:true});
+  requestAnimationFrame(animate);
+})();
+</script>
+
 </body>
 </html>
